@@ -1,9 +1,18 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use crate::material::MyMaterial;
+use kiss3d::builtin::{NormalsMaterial, ObjectMaterial, UvsMaterial};
 use kiss3d::event::{Action, WindowEvent};
 use kiss3d::light::Light;
 use kiss3d::nalgebra::{Translation3, UnitQuaternion, Vector3};
+use kiss3d::resource::material::Material;
+use kiss3d::resource::MaterialManager;
 use kiss3d::window::Window;
 
 use rand::random;
+
+mod material;
 
 //fn main() {
 //    let mut window = Window::new("Kiss3d: cube");
@@ -34,6 +43,15 @@ fn main() {
     p.set_color(random(), random(), random());
     y.set_color(random(), random(), random());
     a.set_color(random(), random(), random());
+    let mat = Rc::new(RefCell::new(
+        Box::new(MyMaterial::new()) as Box<dyn Material + 'static>
+    ));
+
+    c.set_material(Rc::clone(&mat));
+    s.set_material(Rc::clone(&mat));
+    p.set_material(Rc::clone(&mat));
+    y.set_material(Rc::clone(&mat));
+    a.set_material(Rc::clone(&mat));
 
     c.append_translation(&Translation3::new(2.0, 0.0, 0.0));
     s.append_translation(&Translation3::new(4.0, 0.0, 0.0));
@@ -62,46 +80,3 @@ fn main() {
         a.append_rotation_wrt_center(&rot);
     }
 }
-//use kiss3d::event::{Action, WindowEvent};
-//use kiss3d::window::Window;
-//
-//fn main() {
-//    let mut window = Window::new("Kiss3d: events");
-//
-//    while window.render() {
-//        for mut event in window.events().iter() {
-//            match event.value {
-//                WindowEvent::Key(button, Action::Press, _) => {
-//                    println!("You pressed the button: {:?}", button);
-//                    println!("Do not try to press escape: the event is inhibited!");
-//                    event.inhibited = true // override the default keyboard handler
-//                }
-//                WindowEvent::Key(button, Action::Release, _) => {
-//                    println!("You released the button: {:?}", button);
-//                    println!("Do not try to press escape: the event is inhibited!");
-//                    event.inhibited = true // override the default keyboard handler
-//                }
-//                WindowEvent::MouseButton(button, Action::Press, mods) => {
-//                    println!("You pressed the mouse button: {:?}", button);
-//                    println!("You pressed the mouse button with modifiers: {:?}", mods);
-//                    // dont override the default mouse handler
-//                }
-//                WindowEvent::MouseButton(button, Action::Release, mods) => {
-//                    println!("You released the mouse button: {:?}", button);
-//                    println!("You released the mouse button with modifiers: {:?}", mods);
-//                    // dont override the default mouse handler
-//                }
-//                WindowEvent::CursorPos(x, y, _) => {
-//                    println!("Cursor pos: ({} , {})", x, y);
-//                    // dont override the default mouse handler
-//                }
-//                WindowEvent::Scroll(xshift, yshift, _) => {
-//                    println!("Scroll: ({} , {})", xshift, yshift);
-//                    // dont override the default mouse handler
-//                }
-//                _ => {}
-//            }
-//        }
-//    }
-//}
-//
