@@ -2,12 +2,12 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::material::MyMaterial;
-use kiss3d::builtin::{NormalsMaterial, ObjectMaterial, UvsMaterial};
-use kiss3d::event::{Action, WindowEvent};
+
+use kiss3d::event::{WindowEvent};
 use kiss3d::light::Light;
 use kiss3d::nalgebra::{Translation3, UnitQuaternion, Vector3};
 use kiss3d::resource::material::Material;
-use kiss3d::resource::MaterialManager;
+
 use kiss3d::window::Window;
 
 use rand::random;
