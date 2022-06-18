@@ -96,82 +96,80 @@ impl Material for MyMaterial {
         let formated_ntransform = transform.rotation.to_rotation_matrix().into_inner();
         let formated_scale = Matrix3::from_diagonal(&Vector3::new(scale.x, scale.y, scale.z));
 
-        unsafe {
-            self.transform.upload(&formated_transform);
-            self.ntransform.upload(&formated_ntransform);
-            self.scale.upload(&formated_scale);
+        self.transform.upload(&formated_transform);
+        self.ntransform.upload(&formated_ntransform);
+        self.scale.upload(&formated_scale);
 
-            mesh.bind(&mut self.pos, &mut self.normal, &mut self.tex_coord);
+        mesh.bind(&mut self.pos, &mut self.normal, &mut self.tex_coord);
 
-            ctxt.active_texture(Context::TEXTURE0);
-            ctxt.bind_texture(Context::TEXTURE_2D, Some(&*data.texture()));
+        ctxt.active_texture(Context::TEXTURE0);
+        ctxt.bind_texture(Context::TEXTURE_2D, Some(&*data.texture()));
 
-            if data.surface_rendering_active() {
-                self.color.upload(data.color());
+        if data.surface_rendering_active() {
+            self.color.upload(data.color());
 
-                if data.backface_culling_enabled() {
-                    ctxt.enable(Context::CULL_FACE);
-                } else {
-                    ctxt.disable(Context::CULL_FACE);
-                }
+            if data.backface_culling_enabled() {
+                ctxt.enable(Context::CULL_FACE);
+            } else {
+                ctxt.disable(Context::CULL_FACE);
+            }
 
-                let _ = ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::FILL);
+            let _ = ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::FILL);
+            ctxt.draw_elements(
+                Context::TRIANGLES,
+                mesh.num_pts() as i32,
+                Context::UNSIGNED_SHORT,
+                0,
+            );
+        }
+
+        if data.lines_width() != 0.0 {
+            self.color
+                .upload(data.lines_color().unwrap_or(data.color()));
+
+            ctxt.disable(Context::CULL_FACE);
+            ctxt.line_width(data.lines_width());
+
+            if ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::LINE) {
                 ctxt.draw_elements(
                     Context::TRIANGLES,
                     mesh.num_pts() as i32,
                     Context::UNSIGNED_SHORT,
                     0,
                 );
+            } else {
+                mesh.bind_edges();
+                ctxt.draw_elements(
+                    Context::LINES,
+                    mesh.num_pts() as i32 * 2,
+                    Context::UNSIGNED_SHORT,
+                    0,
+                );
             }
+            ctxt.line_width(1.0);
+        }
 
-            if data.lines_width() != 0.0 {
-                self.color
-                    .upload(data.lines_color().unwrap_or(data.color()));
+        if data.points_size() != 0.0 {
+            self.color.upload(data.color());
 
-                ctxt.disable(Context::CULL_FACE);
-                ctxt.line_width(data.lines_width());
-
-                if ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::LINE) {
-                    ctxt.draw_elements(
-                        Context::TRIANGLES,
-                        mesh.num_pts() as i32,
-                        Context::UNSIGNED_SHORT,
-                        0,
-                    );
-                } else {
-                    mesh.bind_edges();
-                    ctxt.draw_elements(
-                        Context::LINES,
-                        mesh.num_pts() as i32 * 2,
-                        Context::UNSIGNED_SHORT,
-                        0,
-                    );
-                }
-                ctxt.line_width(1.0);
+            ctxt.disable(Context::CULL_FACE);
+            ctxt.point_size(data.points_size());
+            if ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::POINT) {
+                ctxt.draw_elements(
+                    Context::TRIANGLES,
+                    mesh.num_pts() as i32,
+                    Context::UNSIGNED_SHORT,
+                    0,
+                );
+            } else {
+                ctxt.draw_elements(
+                    Context::POINTS,
+                    mesh.num_pts() as i32,
+                    Context::UNSIGNED_SHORT,
+                    0,
+                );
             }
-
-            if data.points_size() != 0.0 {
-                self.color.upload(data.color());
-
-                ctxt.disable(Context::CULL_FACE);
-                ctxt.point_size(data.points_size());
-                if ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::POINT) {
-                    ctxt.draw_elements(
-                        Context::TRIANGLES,
-                        mesh.num_pts() as i32,
-                        Context::UNSIGNED_SHORT,
-                        0,
-                    );
-                } else {
-                    ctxt.draw_elements(
-                        Context::POINTS,
-                        mesh.num_pts() as i32,
-                        Context::UNSIGNED_SHORT,
-                        0,
-                    );
-                }
-                ctxt.point_size(1.0);
-            }
+            ctxt.point_size(1.0);
         }
 
         mesh.unbind();
