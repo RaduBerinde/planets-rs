@@ -177,16 +177,11 @@ impl Material for MyMaterial {
     }
 }
 
-/// Vertex shader of the default object material.
-pub static OBJECT_VERTEX_SRC: &str = A_VERY_LONG_STRING;
-/// Fragment shader of the default object material.
-pub static OBJECT_FRAGMENT_SRC: &str = ANOTHER_VERY_LONG_STRING;
-
-const A_VERY_LONG_STRING: &str = include_str!("default.vert");
+const OBJECT_VERTEX_SRC: &str = include_str!("default.vert");
 
 // phong-like lighting (heavily) inspired
 // http://www.mathematik.uni-marburg.de/~thormae/lectures/graphics1/code/WebGLShaderLightMat/ShaderLightMat.html
-const ANOTHER_VERY_LONG_STRING: &str = include_str!("default.frag");
+const OBJECT_FRAGMENT_SRC: &str = include_str!("default.frag");
 
 ///// A material that draws normals of an object.
 //pub struct MyMaterial {
