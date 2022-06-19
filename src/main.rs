@@ -3,9 +3,9 @@ use std::rc::Rc;
 
 use crate::material::MyMaterial;
 
-use kiss3d::event::{WindowEvent};
+use kiss3d::camera::ArcBall;
 use kiss3d::light::Light;
-use kiss3d::nalgebra::{Translation3, UnitQuaternion, Vector3};
+use kiss3d::nalgebra::{Point3, Translation3, UnitQuaternion, Vector3};
 use kiss3d::resource::material::Material;
 
 use kiss3d::window::Window;
@@ -13,21 +13,6 @@ use kiss3d::window::Window;
 use rand::random;
 
 mod material;
-
-//fn main() {
-//    let mut window = Window::new("Kiss3d: cube");
-//    let mut c = window.add_cube(1.0, 1.0, 1.0);
-//
-//    c.set_color(1.0, 0.0, 0.0);
-//
-//    window.set_light(Light::StickToCamera);
-//
-//    let rot = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.014);
-//
-//    while window.render() {
-//        c.prepend_to_local_rotation(&rot);
-//    }
-//}
 
 fn main() {
     let mut window = Window::new("Kiss3d: primitives");
@@ -63,16 +48,19 @@ fn main() {
 
     let rot = UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 0.014);
 
-    while window.render() {
-        for mut event in window.events().iter() {
-            match event.value {
-                WindowEvent::Scroll(xshift, yshift, modifiers) => {
-                    // dont override the default mouse handler
-                    event.value = WindowEvent::Scroll(xshift, -yshift * 0.3, modifiers);
-                }
-                _ => {}
-            }
-        }
+    let mut camera = ArcBall::new(Point3::new(0.0f32, 0.0, -8.0), Point3::origin());
+    camera.set_dist_step(-12.0);
+
+    while window.render_with_camera(&mut camera) {
+        //for mut event in window.events().iter() {
+        //    match event.value {
+        //        WindowEvent::Scroll(xshift, yshift, modifiers) => {
+        //            // dont override the default mouse handler
+        //            event.value = WindowEvent::Scroll(xshift, -yshift * 0.3, modifiers);
+        //        }
+        //        _ => {}
+        //    }
+        //}
         c.append_rotation_wrt_center(&rot);
         s.append_rotation_wrt_center(&rot);
         p.append_rotation_wrt_center(&rot);
