@@ -12,6 +12,7 @@ use kiss3d::window::Window;
 
 use rand::random;
 
+mod body;
 mod material;
 
 fn main() {
