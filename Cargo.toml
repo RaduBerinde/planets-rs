@@ -6,5 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-kiss3d = "0.30"
+# kiss3d = "0.30"
+kiss3d = { git = "https://github.com/sebcrozet/kiss3d.git", rev = "67042f8" }
 rand = "0.8.5"

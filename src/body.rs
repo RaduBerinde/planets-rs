@@ -1,4 +1,8 @@
-use kiss3d::nalgebra::Vector3;
+use kiss3d::{
+    nalgebra::{Translation3, Vector3},
+    scene::SceneNode,
+    window::Window,
+};
 
 pub struct Body {
     // Constant fields.
@@ -12,7 +16,11 @@ pub struct Body {
     // Changing fields.
     pub position: Vector3<f64>,
     pub velocity: Vector3<f64>,
+
+    pub sphere: Option<SceneNode>,
 }
+
+pub const render_scale: f64 = 1e-5;
 
 impl Body {
     pub fn sun() -> Body {
@@ -24,6 +32,8 @@ impl Body {
 
             position: Vector3::new(0.0, 0.0, 0.0),
             velocity: Vector3::new(0.0, 0.0, 0.0),
+
+            sphere: None,
         }
     }
 
@@ -36,6 +46,28 @@ impl Body {
 
             position: Vector3::new(0.0, 0.0, 0.0),
             velocity: Vector3::new(0.0, 0.0, 0.0),
+
+            sphere: None,
         }
+    }
+
+    pub fn render_init(&mut self, window: &mut Window) {
+        let mut sphere = window.add_sphere((self.radius * render_scale) as f32);
+        sphere.set_color(
+            self.color.x as f32,
+            self.color.y as f32,
+            self.color.z as f32,
+        );
+        self.sphere = Some(sphere);
+    }
+
+    pub fn render_update(&mut self) {
+        let sphere = self.sphere.as_mut().unwrap();
+
+        sphere.set_local_translation(Translation3::new(
+            (self.position.x * render_scale) as f32,
+            (self.position.y * render_scale) as f32,
+            (self.position.z * render_scale) as f32,
+        ));
     }
 }

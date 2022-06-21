@@ -1,8 +1,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use crate::body::render_scale;
 use crate::material::MyMaterial;
 
+use body::Body;
 use kiss3d::camera::ArcBall;
 use kiss3d::light::Light;
 use kiss3d::nalgebra::{Point3, Translation3, UnitQuaternion, Vector3};
@@ -49,8 +51,22 @@ fn main() {
 
     let rot = UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 0.014);
 
-    let mut camera = ArcBall::new(Point3::new(0.0f32, 0.0, -8.0), Point3::origin());
-    camera.set_dist_step(-12.0);
+    let mut camera = //ArcBall::new(Point3::new(0.0f32, 0.0, 300.0), Point3::origin());
+        ArcBall::new_with_frustrum(std::f32::consts::PI / 4.0, 0.001, 10240.0, Point3::new(0.0f32, 0.0, 10.0), Point3::origin());
+    camera.set_dist_step(0.99);
+
+    let mut sun = Body::sun();
+    sun.render_init(&mut window);
+
+    const aphelion: f64 = 152.10e6;
+    let mut earth = Body::earth();
+    earth.render_init(&mut window);
+    earth.position.x = aphelion;
+    camera.set_at(Point3::new(
+        (earth.position.x * render_scale) as f32,
+        (earth.position.y * render_scale) as f32,
+        (earth.position.z * render_scale) as f32,
+    ));
 
     while window.render_with_camera(&mut camera) {
         //for mut event in window.events().iter() {
@@ -67,5 +83,8 @@ fn main() {
         p.append_rotation_wrt_center(&rot);
         y.append_rotation_wrt_center(&rot);
         a.append_rotation_wrt_center(&rot);
+
+        sun.render_update();
+        earth.render_update();
     }
 }
