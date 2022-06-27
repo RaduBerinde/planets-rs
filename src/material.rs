@@ -10,13 +10,10 @@ use kiss3d::scene::ObjectData;
 pub struct MyMaterial {
     effect: Effect,
     pos: ShaderAttribute<Point3<f32>>,
-    normal: ShaderAttribute<Vector3<f32>>,
     tex_coord: ShaderAttribute<Point2<f32>>,
-    light: ShaderUniform<Point3<f32>>,
     color: ShaderUniform<Point3<f32>>,
     transform: ShaderUniform<Matrix4<f32>>,
     scale: ShaderUniform<Matrix3<f32>>,
-    ntransform: ShaderUniform<Matrix3<f32>>,
     proj: ShaderUniform<Matrix4<f32>>,
     view: ShaderUniform<Matrix4<f32>>,
 }
@@ -32,13 +29,10 @@ impl MyMaterial {
         // get the variables locations
         MyMaterial {
             pos: effect.get_attrib("position").unwrap(),
-            normal: effect.get_attrib("normal").unwrap(),
             tex_coord: effect.get_attrib("tex_coord").unwrap(),
-            light: effect.get_uniform("light_position").unwrap(),
             color: effect.get_uniform("color").unwrap(),
             transform: effect.get_uniform("transform").unwrap(),
             scale: effect.get_uniform("scale").unwrap(),
-            ntransform: effect.get_uniform("ntransform").unwrap(),
             view: effect.get_uniform("view").unwrap(),
             proj: effect.get_uniform("proj").unwrap(),
             effect,
@@ -48,13 +42,11 @@ impl MyMaterial {
     fn activate(&mut self) {
         self.effect.use_program();
         self.pos.enable();
-        self.normal.enable();
         self.tex_coord.enable();
     }
 
     fn deactivate(&mut self) {
         self.pos.disable();
-        self.normal.disable();
         self.tex_coord.disable();
     }
 }
@@ -66,7 +58,7 @@ impl Material for MyMaterial {
         transform: &Isometry3<f32>,
         scale: &Vector3<f32>,
         camera: &mut dyn Camera,
-        light: &Light,
+        _: &Light,
         data: &ObjectData,
         mesh: &mut Mesh,
     ) {
@@ -75,17 +67,10 @@ impl Material for MyMaterial {
 
         /*
          *
-         * Setup camera and light.
+         * Setup camera.
          *
          */
         camera.upload(pass, &mut self.proj, &mut self.view);
-
-        let pos = match *light {
-            Light::Absolute(ref p) => *p,
-            Light::StickToCamera => camera.eye(),
-        };
-
-        self.light.upload(&pos);
 
         /*
          *
@@ -93,17 +78,18 @@ impl Material for MyMaterial {
          *
          */
         let formated_transform = transform.to_homogeneous();
-        let formated_ntransform = transform.rotation.to_rotation_matrix().into_inner();
         let formated_scale = Matrix3::from_diagonal(&Vector3::new(scale.x, scale.y, scale.z));
 
         self.transform.upload(&formated_transform);
-        self.ntransform.upload(&formated_ntransform);
         self.scale.upload(&formated_scale);
 
-        mesh.bind(&mut self.pos, &mut self.normal, &mut self.tex_coord);
+        //mesh.bind(&mut self.pos, &mut self.normal, &mut self.tex_coord);
+        mesh.bind_coords(&mut self.pos);
+        mesh.bind_uvs(&mut self.tex_coord);
+        mesh.bind_faces();
 
-        ctxt.active_texture(Context::TEXTURE0);
-        ctxt.bind_texture(Context::TEXTURE_2D, Some(&*data.texture()));
+        //ctxt.active_texture(Context::TEXTURE0);
+        //ctxt.bind_texture(Context::TEXTURE_2D, Some(&*data.texture()));
 
         if data.surface_rendering_active() {
             self.color.upload(data.color());
@@ -181,25 +167,16 @@ const OBJECT_VERTEX_SRC: &str = "
 #version 100
 attribute vec3 position;
 attribute vec2 tex_coord;
-attribute vec3 normal;
 
-uniform mat3 ntransform, scale;
+uniform mat3 scale;
 uniform mat4 proj, view, transform;
-uniform vec3 light_position;
 
-varying vec3 local_light_position;
 varying vec2 tex_coord_v;
-varying vec3 normalInterp;
-varying vec3 vertPos;
-varying vec3 uv_as_a_color;
 
 void main(){
     gl_Position = proj * view * transform * vec4(scale * position, 1.0);
     vec4 vertPos4 = view * transform * vec4(scale * position, 1.0);
-    vertPos = vec3(vertPos4) / vertPos4.w;
-    normalInterp = mat3(view) * ntransform * normal;
     tex_coord_v = tex_coord;
-    local_light_position = (view * vec4(light_position, 1.0)).xyz;
 }
 ";
 
@@ -211,32 +188,11 @@ const OBJECT_FRAGMENT_SRC: &str = "
    precision mediump float;
 #endif
 
-varying vec3 local_light_position;
 varying vec2 tex_coord_v;
-varying vec3 normalInterp;
-varying vec3 vertPos;
 
 uniform vec3 color;
-uniform sampler2D tex;
-const vec3 specColor = vec3(0.4, 0.4, 0.4);
 
 void main() {
-  vec3 normal = normalize(normalInterp);
-  vec3 lightDir = normalize(local_light_position - vertPos);
-
-  float lambertian = max(dot(lightDir, normal), 0.0);
-  float specular = 0.0;
-
-  if(lambertian > 0.0) {
-    vec3 viewDir = normalize(-vertPos);
-    vec3 halfDir = normalize(lightDir + viewDir);
-    float specAngle = max(dot(halfDir, normal), 0.0);
-    specular = pow(specAngle, 30.0);
-  }
-
-  vec4 tex_color = texture2D(tex, tex_coord_v);
-  gl_FragColor = vec4(color * (0.5 + tex_coord_v.x), 1.0) + /*vec4((normal + 1.0) / 2.0, 1.0) + */0.001 * tex_color * vec4(color / 3.0 +
-                                  lambertian * color / 3.0 +
-                                  specular * specColor / 3.0, 0.0);
+  gl_FragColor = vec4(color * tex_coord_v.x, 1.0);
 }
 ";
