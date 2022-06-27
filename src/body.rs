@@ -20,7 +20,7 @@ pub struct Body {
     pub sphere: Option<SceneNode>,
 }
 
-pub const render_scale: f64 = 1e-5;
+pub const RENDER_SCALE: f64 = 1e-5;
 
 impl Body {
     pub fn sun() -> Body {
@@ -28,7 +28,7 @@ impl Body {
             name: String::from("sun"),
             mass: 1.9885e+30,
             radius: 0.5 * 1.39e6,
-            color: Vector3::new(0.9, 0.8, 0.0),
+            color: Vector3::new(1.0, 1.0, 0.3),
 
             position: Vector3::new(0.0, 0.0, 0.0),
             velocity: Vector3::new(0.0, 0.0, 0.0),
@@ -52,7 +52,7 @@ impl Body {
     }
 
     pub fn render_init(&mut self, window: &mut Window) {
-        let mut sphere = window.add_sphere((self.radius * render_scale) as f32);
+        let mut sphere = window.add_sphere((self.radius * RENDER_SCALE) as f32);
         sphere.set_color(
             self.color.x as f32,
             self.color.y as f32,
@@ -65,9 +65,9 @@ impl Body {
         let sphere = self.sphere.as_mut().unwrap();
 
         sphere.set_local_translation(Translation3::new(
-            (self.position.x * render_scale) as f32,
-            (self.position.y * render_scale) as f32,
-            (self.position.z * render_scale) as f32,
+            (self.position.x * RENDER_SCALE) as f32,
+            (self.position.y * RENDER_SCALE) as f32,
+            (self.position.z * RENDER_SCALE) as f32,
         ));
     }
 }
