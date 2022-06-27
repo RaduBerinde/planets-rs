@@ -17,7 +17,7 @@ pub struct Body {
     pub position: Vector3<f64>,
     pub velocity: Vector3<f64>,
 
-    pub sphere: Option<SceneNode>,
+    sphere: Option<SceneNode>,
 }
 
 pub const RENDER_SCALE: f64 = 1e-5;
@@ -62,12 +62,17 @@ impl Body {
     }
 
     pub fn render_update(&mut self) {
-        let sphere = self.sphere.as_mut().unwrap();
-
-        sphere.set_local_translation(Translation3::new(
+        let translation = Translation3::new(
             (self.position.x * RENDER_SCALE) as f32,
             (self.position.y * RENDER_SCALE) as f32,
             (self.position.z * RENDER_SCALE) as f32,
-        ));
+        );
+        let node = self.scene_node();
+
+        node.set_local_translation(translation);
+    }
+
+    pub fn scene_node(&mut self) -> &mut SceneNode {
+        self.sphere.as_mut().unwrap()
     }
 }

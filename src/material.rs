@@ -177,134 +177,66 @@ impl Material for MyMaterial {
     }
 }
 
-const OBJECT_VERTEX_SRC: &str = include_str!("default.vert");
+const OBJECT_VERTEX_SRC: &str = "
+#version 100
+attribute vec3 position;
+attribute vec2 tex_coord;
+attribute vec3 normal;
 
-// phong-like lighting (heavily) inspired
-// http://www.mathematik.uni-marburg.de/~thormae/lectures/graphics1/code/WebGLShaderLightMat/ShaderLightMat.html
-const OBJECT_FRAGMENT_SRC: &str = include_str!("default.frag");
+uniform mat3 ntransform, scale;
+uniform mat4 proj, view, transform;
+uniform vec3 light_position;
 
-///// A material that draws normals of an object.
-//pub struct MyMaterial {
-//    shader: Effect,
-//    position: ShaderAttribute<Point3<f32>>,
-//    normal: ShaderAttribute<Vector3<f32>>,
-//    proj: ShaderUniform<Matrix4<f32>>,
-//    view: ShaderUniform<Matrix4<f32>>,
-//    transform: ShaderUniform<Matrix4<f32>>,
-//    scale: ShaderUniform<Matrix3<f32>>,
-//}
-//
-//impl MyMaterial {
-//    /// Creates a new MyMaterial.
-//    pub fn new() -> MyMaterial {
-//        let mut shader = Effect::new_from_str(NORMAL_VERTEX_SRC, NORMAL_FRAGMENT_SRC);
-//
-//        shader.use_program();
-//
-//        MyMaterial {
-//            position: shader.get_attrib("position").unwrap(),
-//            normal: shader.get_attrib("normal").unwrap(),
-//            transform: shader.get_uniform("transform").unwrap(),
-//            scale: shader.get_uniform("scale").unwrap(),
-//            view: shader.get_uniform("view").unwrap(),
-//            proj: shader.get_uniform("proj").unwrap(),
-//            shader,
-//        }
-//    }
-//}
-//
-//impl Material for MyMaterial {
-//    fn render(
-//        &mut self,
-//        pass: usize,
-//        transform: &Isometry3<f32>,
-//        scale: &Vector3<f32>,
-//        camera: &mut dyn Camera,
-//        _: &Light,
-//        data: &ObjectData,
-//        mesh: &mut Mesh,
-//    ) {
-//        let ctxt = Context::get();
-//        //// enable/disable culling.
-//        //if data.backface_culling_enabled() {
-//        //    ctxt.enable(Context::CULL_FACE)
-//        //} else {
-//        //    ctxt.disable(Context::CULL_FACE)
-//        //}
-//
-//        self.shader.use_program();
-//        self.position.enable();
-//        self.normal.enable();
-//
-//        /*
-//         *
-//         * Setup camera and light.
-//         *
-//         */
-//        camera.upload(pass, &mut self.view, &mut self.proj);
-//
-//        /*
-//         *
-//         * Setup object-related stuffs.
-//         *
-//         */
-//        let formated_transform = transform.to_homogeneous();
-//        let formated_scale = Matrix3::from_diagonal(&Vector3::new(scale.x, scale.y, scale.z));
-//
-//        self.transform.upload(&formated_transform);
-//        self.scale.upload(&formated_scale);
-//
-//        mesh.bind_coords(&mut self.position);
-//        mesh.bind_normals(&mut self.normal);
-//        mesh.bind_faces();
-//
-//        ctxt.disable(Context::CULL_FACE);
-//        ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::FILL);
-//        ctxt.draw_elements(
-//            Context::TRIANGLES,
-//            mesh.num_pts() as i32,
-//            Context::UNSIGNED_SHORT,
-//            0,
-//        );
-//
-//        mesh.unbind();
-//
-//        self.position.disable();
-//        self.normal.disable();
-//    }
-//}
-//
-///// A vertex shader for coloring each point of an object depending on its normal.
-//pub static NORMAL_VERTEX_SRC: &str = A_VERY_LONG_STRING;
-//
-///// A fragment shader for coloring each point of an object depending on its normal.
-//pub static NORMAL_FRAGMENT_SRC: &str = ANOTHER_VERY_LONG_STRING;
-//
-//const A_VERY_LONG_STRING: &str = "#version 100
-//attribute vec3 position;
-//attribute vec3 normal;
-//uniform mat4 proj;
-//uniform mat4 view;
-//uniform mat4 transform;
-//uniform mat3 scale;
-//varying vec3 ls_normal;
-//void main() {
-//    ls_normal   = normal;
-//    gl_Position = proj * view * transform * vec4(scale * position, 1.0);
-//}
-//";
-////gl_Position = proj * view * transform * vec4(scale * position, 1.0);
-//
-//const ANOTHER_VERY_LONG_STRING: &str = "#version 100
-//#ifdef GL_FRAGMENT_PRECISION_HIGH
-//   precision highp float;
-//#else
-//   precision mediump float;
-//#endif
-//varying vec3 ls_normal;
-//void main() {
-//    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-//}
-//";
-//// gl_FragColor = vec4((ls_normal + 1.0) / 2.0, 1.0);
-//
+varying vec3 local_light_position;
+varying vec2 tex_coord_v;
+varying vec3 normalInterp;
+varying vec3 vertPos;
+varying vec3 uv_as_a_color;
+
+void main(){
+    gl_Position = proj * view * transform * vec4(scale * position, 1.0);
+    vec4 vertPos4 = view * transform * vec4(scale * position, 1.0);
+    vertPos = vec3(vertPos4) / vertPos4.w;
+    normalInterp = mat3(view) * ntransform * normal;
+    tex_coord_v = tex_coord;
+    local_light_position = (view * vec4(light_position, 1.0)).xyz;
+}
+";
+
+const OBJECT_FRAGMENT_SRC: &str = "
+#version 100
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+   precision highp float;
+#else
+   precision mediump float;
+#endif
+
+varying vec3 local_light_position;
+varying vec2 tex_coord_v;
+varying vec3 normalInterp;
+varying vec3 vertPos;
+
+uniform vec3 color;
+uniform sampler2D tex;
+const vec3 specColor = vec3(0.4, 0.4, 0.4);
+
+void main() {
+  vec3 normal = normalize(normalInterp);
+  vec3 lightDir = normalize(local_light_position - vertPos);
+
+  float lambertian = max(dot(lightDir, normal), 0.0);
+  float specular = 0.0;
+
+  if(lambertian > 0.0) {
+    vec3 viewDir = normalize(-vertPos);
+    vec3 halfDir = normalize(lightDir + viewDir);
+    float specAngle = max(dot(halfDir, normal), 0.0);
+    specular = pow(specAngle, 30.0);
+  }
+
+  vec4 tex_color = texture2D(tex, tex_coord_v);
+  gl_FragColor = vec4(color * (0.5 + tex_coord_v.x), 1.0) + /*vec4((normal + 1.0) / 2.0, 1.0) + */0.001 * tex_color * vec4(color / 3.0 +
+                                  lambertian * color / 3.0 +
+                                  specular * specColor / 3.0, 0.0);
+}
+";
