@@ -91,72 +91,16 @@ impl Material for MyMaterial {
         //ctxt.active_texture(Context::TEXTURE0);
         //ctxt.bind_texture(Context::TEXTURE_2D, Some(&*data.texture()));
 
-        if data.surface_rendering_active() {
-            self.color.upload(data.color());
+        self.color.upload(data.color());
 
-            if data.backface_culling_enabled() {
-                ctxt.enable(Context::CULL_FACE);
-            } else {
-                ctxt.disable(Context::CULL_FACE);
-            }
-
-            let _ = ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::FILL);
-            ctxt.draw_elements(
-                Context::TRIANGLES,
-                mesh.num_pts() as i32,
-                Context::UNSIGNED_SHORT,
-                0,
-            );
-        }
-
-        if data.lines_width() != 0.0 {
-            self.color
-                .upload(data.lines_color().unwrap_or(data.color()));
-
-            ctxt.disable(Context::CULL_FACE);
-            ctxt.line_width(data.lines_width());
-
-            if ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::LINE) {
-                ctxt.draw_elements(
-                    Context::TRIANGLES,
-                    mesh.num_pts() as i32,
-                    Context::UNSIGNED_SHORT,
-                    0,
-                );
-            } else {
-                mesh.bind_edges();
-                ctxt.draw_elements(
-                    Context::LINES,
-                    mesh.num_pts() as i32 * 2,
-                    Context::UNSIGNED_SHORT,
-                    0,
-                );
-            }
-            ctxt.line_width(1.0);
-        }
-
-        if data.points_size() != 0.0 {
-            self.color.upload(data.color());
-
-            ctxt.disable(Context::CULL_FACE);
-            ctxt.point_size(data.points_size());
-            if ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::POINT) {
-                ctxt.draw_elements(
-                    Context::TRIANGLES,
-                    mesh.num_pts() as i32,
-                    Context::UNSIGNED_SHORT,
-                    0,
-                );
-            } else {
-                ctxt.draw_elements(
-                    Context::POINTS,
-                    mesh.num_pts() as i32,
-                    Context::UNSIGNED_SHORT,
-                    0,
-                );
-            }
-            ctxt.point_size(1.0);
-        }
+        ctxt.enable(Context::CULL_FACE);
+        let _ = ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::FILL);
+        ctxt.draw_elements(
+            Context::TRIANGLES,
+            mesh.num_pts() as i32,
+            Context::UNSIGNED_SHORT,
+            0,
+        );
 
         mesh.unbind();
         self.deactivate();
@@ -175,7 +119,6 @@ varying vec2 tex_coord_v;
 
 void main(){
     gl_Position = proj * view * transform * vec4(scale * position, 1.0);
-    vec4 vertPos4 = view * transform * vec4(scale * position, 1.0);
     tex_coord_v = tex_coord;
 }
 ";
