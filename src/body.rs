@@ -46,7 +46,7 @@ impl Body {
         Body::new(
             String::from("sun"),
             1.9885e+30,
-            0.5 * 1.39e6,
+            696342.0,
             Vector3::new(1.0, 0.8, 0.3),
         )
     }
@@ -57,6 +57,15 @@ impl Body {
             5.97237e+24,
             6378.137, // equatorial
             Vector3::new(0.1, 0.5, 1.0),
+        )
+    }
+
+    pub fn moon() -> Body {
+        Body::new(
+            String::from("moon"),
+            7.34767309e+22,
+            1737.5,
+            Vector3::new(0.5, 0.5, 0.5),
         )
     }
 

@@ -1,9 +1,14 @@
+mod body;
+mod lighting;
+mod material;
+mod system;
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::body::*;
 use crate::lighting::*;
 use crate::material::*;
+use crate::system::*;
 
 use kiss3d::camera::ArcBall;
 use kiss3d::event::MouseButton;
@@ -11,10 +16,6 @@ use kiss3d::nalgebra::Point3;
 use kiss3d::resource::material::Material;
 
 use kiss3d::window::Window;
-
-mod body;
-mod lighting;
-mod material;
 
 fn main() {
     let mut window = Window::new_with_size("planets-rs", 1200, 800);
@@ -30,27 +31,30 @@ fn main() {
     camera.rebind_rotate_button(Some(MouseButton::Button2));
     camera.set_dist_step(0.99);
 
-    let mut sun = Body::sun();
-    sun.render_init(&mut window);
-    init_sun_lighting(&mut sun);
+    let mut s = System::new();
 
     const APHELION: f64 = 152.10e6;
-    let mut earth = Body::earth();
-    earth.render_init(&mut window);
-    earth.position.x = APHELION;
-    camera.set_at(Point3::new(
-        (earth.position.x * RENDER_SCALE) as f32,
-        (earth.position.y * RENDER_SCALE) as f32,
-        (earth.position.z * RENDER_SCALE) as f32,
-    ));
+    s.earth.position.x = APHELION;
+
+    // Distance between earth and moon during Aug 21, 2017 solar eclipse.
+    const MOON_TO_EARTH: f64 = 372000.0;
+    s.moon.position.x = s.earth.position.x - MOON_TO_EARTH;
+
+    camera.set_at(s.earth.render_position());
+
+    s.render_init(&mut window);
+
+    init_sun_lighting(&mut s.sun);
 
     let mat = Rc::new(RefCell::new(
         Box::new(MyMaterial::new()) as Box<dyn Material + 'static>
     ));
-    sun.scene_node().set_material(Rc::clone(&mat));
-    earth.scene_node().set_material(Rc::clone(&mat));
+    s.sun.scene_node().set_material(Rc::clone(&mat));
+    s.earth.scene_node().set_material(Rc::clone(&mat));
+    s.moon.scene_node().set_material(Rc::clone(&mat));
 
-    body_lighting(&mut earth);
+    body_lighting(&mut s.earth);
+    body_lighting(&mut s.moon);
     while window.render_with_camera(&mut camera) {
         //for mut event in window.events().iter() {
         //    match event.value {
@@ -61,7 +65,6 @@ fn main() {
         //        _ => {}
         //    }
         //}
-        sun.render_update();
-        earth.render_update();
+        s.render_update();
     }
 }
