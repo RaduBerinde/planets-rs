@@ -7,7 +7,7 @@ pub struct Body {
     pub mass: f64,
     // Radius in km.
     pub radius: f64,
-    pub color: Vector3<f32>,
+    pub color: Point3<f32>,
 
     // Changing fields.
     pub position: Point3<f64>,
@@ -15,7 +15,7 @@ pub struct Body {
 }
 
 impl Body {
-    pub fn new(name: String, mass: f64, radius: f64, color: Vector3<f32>) -> Body {
+    pub fn new(name: String, mass: f64, radius: f64, color: Point3<f32>) -> Body {
         Body {
             name,
             mass,
@@ -31,7 +31,7 @@ impl Body {
             String::from("sun"),
             1.9885e+30,
             696342.0,
-            Vector3::new(1.0, 0.8, 0.3),
+            Point3::new(1.0, 0.8, 0.3),
         )
     }
 
@@ -40,7 +40,7 @@ impl Body {
             String::from("earth"),
             5.97237e+24,
             6378.137, // equatorial
-            Vector3::new(0.1, 0.5, 1.0),
+            Point3::new(0.1, 0.5, 1.0),
         )
     }
 
@@ -49,7 +49,7 @@ impl Body {
             String::from("moon"),
             7.34767309e+22,
             1737.5,
-            Vector3::new(0.5, 0.5, 0.5),
+            Point3::new(0.5, 0.5, 0.5),
         )
     }
 }

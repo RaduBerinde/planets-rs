@@ -1,6 +1,10 @@
 use self::lighting::*;
 use self::material::*;
 use crate::{body::Body, system::System};
+use kiss3d::camera::Camera;
+use kiss3d::nalgebra;
+use kiss3d::nalgebra::Point2;
+use kiss3d::nalgebra::Vector2;
 use kiss3d::{
     camera::ArcBall,
     event::MouseButton,
@@ -66,8 +70,38 @@ impl<'a> Renderer<'a> {
                 body_lighting(body, &render_state.mesh, 2.0 * body.radius as f32);
             }
         });
+        self.render_body_hint(window, &self.s.earth);
+        self.render_body_hint(window, &self.s.moon);
+        self.render_body_hint(window, &self.s.sun);
 
         window.render_with_camera(&mut self.camera)
+    }
+
+    pub fn render_body_hint(&self, window: &mut Window, body: &Body) {
+        let body_pos = render_position(body);
+
+        let dist = (body_pos - self.camera.eye()).norm();
+        if dist < render_radius(body) * 200.0 {
+            return;
+        }
+
+        let point = self.camera.project(&body_pos, &Vector2::new(1.0, 1.0));
+        let mut win_size: Vector2<f32> = nalgebra::convert(window.size());
+        win_size /= window.scale_factor() as f32;
+
+        let point = &win_size.component_mul(&(point - Vector2::new(0.5, 0.5)));
+
+        window.draw_planar_line(
+            &Point2::new(point.x, point.y - 15.0),
+            &Point2::new(point.x, point.y + 15.0),
+            &body.color,
+        );
+
+        window.draw_planar_line(
+            &Point2::new(point.x - 15.0, point.y),
+            &Point2::new(point.x + 15.0, point.y),
+            &body.color,
+        );
     }
 }
 
