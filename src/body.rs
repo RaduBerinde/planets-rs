@@ -49,7 +49,7 @@ impl Body {
             String::from("moon"),
             7.34767309e+22,
             1737.5,
-            Point3::new(0.5, 0.5, 0.5),
+            Point3::new(0.7, 0.7, 0.7),
         )
     }
 }

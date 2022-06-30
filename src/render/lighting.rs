@@ -12,7 +12,6 @@ pub fn init_sun_lighting(mesh: &Rc<RefCell<Mesh>>) {
 
     let mut uvs_gpu_vec = mesh.uvs().write().unwrap();
     let uvs = uvs_gpu_vec.data_mut().as_mut().unwrap();
-    println!("len: {}", uvs.len());
 
     for uv in uvs {
         uv.x = 0.7 + rand::random::<f32>() * 0.3;
@@ -42,6 +41,6 @@ pub fn body_lighting(body: &mut Body, mesh: &Rc<RefCell<Mesh>>, scale: f32) {
         let normal = normals[i];
         let light_dir = (Point3::default() - pos).normalize();
         let diffuse = f32::max(light_dir.dot(&normal), 0.0);
-        uvs[i].x = 0.1 + 0.9 * diffuse;
+        uvs[i].x = 0.15 + 0.85 * diffuse;
     }
 }
