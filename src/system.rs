@@ -17,15 +17,7 @@ impl System {
         }
     }
 
-    pub fn render_init(&mut self, window: &mut Window) {
-        self.for_all(|b| b.render_init(window));
-    }
-
-    pub fn render_update(&mut self) {
-        self.for_all(|b| b.render_update());
-    }
-
-    fn for_all<F>(&mut self, mut f: F)
+    pub fn for_all<F>(&mut self, mut f: F)
     where
         F: FnMut(&mut Body),
     {

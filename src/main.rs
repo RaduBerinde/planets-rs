@@ -1,6 +1,7 @@
 mod body;
 mod lighting;
 mod material;
+mod render;
 mod system;
 
 use std::cell::RefCell;
@@ -8,6 +9,7 @@ use std::rc::Rc;
 
 use crate::lighting::*;
 use crate::material::*;
+use crate::render::*;
 use crate::system::*;
 
 use kiss3d::camera::ArcBall;
@@ -40,21 +42,10 @@ fn main() {
     const MOON_TO_EARTH: f64 = 372000.0;
     s.moon.position.x = s.earth.position.x - MOON_TO_EARTH;
 
-    camera.set_at(s.earth.render_position());
+    camera.set_at(render_position(&s.earth));
 
-    s.render_init(&mut window);
+    let mut r = Renderer::new(&mut s, &mut window);
 
-    init_sun_lighting(&mut s.sun);
-
-    let mat = Rc::new(RefCell::new(
-        Box::new(MyMaterial::new()) as Box<dyn Material + 'static>
-    ));
-    s.sun.scene_node().set_material(Rc::clone(&mat));
-    s.earth.scene_node().set_material(Rc::clone(&mat));
-    s.moon.scene_node().set_material(Rc::clone(&mat));
-
-    body_lighting(&mut s.earth);
-    body_lighting(&mut s.moon);
     while window.render_with_camera(&mut camera) {
         //for mut event in window.events().iter() {
         //    match event.value {
@@ -65,6 +56,6 @@ fn main() {
         //        _ => {}
         //    }
         //}
-        s.render_update();
+        r.frame();
     }
 }
