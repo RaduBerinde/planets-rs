@@ -45,7 +45,6 @@ pub fn body_lighting(body: &mut Body, mesh: &Rc<RefCell<Mesh>>, scale: f32) {
     }
 }
 
-// Assumes that the start and end points are outside the sphere!.
 fn segment_intersects_sphere(
     start: &Vector3<f32>,
     end: &Vector3<f32>,
@@ -61,9 +60,7 @@ fn segment_intersects_sphere(
     let seg = end - start;
 
     // Project the center point onto the0,1 vector and normalize distance to [0, 1].
-    let mut t = (center - start).dot(&seg) / seg.norm_squared();
-    t = f32::max(t, 0.0);
-    t = f32::min(t, 1.0);
+    let t = ((center - start).dot(&seg) / seg.norm_squared()).clamp(0.0, 1.0);
     let point = center + seg * t;
 
     (point - center).norm_squared() <= radius * radius
