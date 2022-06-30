@@ -4,7 +4,6 @@ use kiss3d::{
     nalgebra::{self, Point3},
     resource::Mesh,
 };
-use rand;
 
 use crate::body::Body;
 
@@ -15,8 +14,8 @@ pub fn init_sun_lighting(mesh: &Rc<RefCell<Mesh>>) {
     let uvs = uvs_gpu_vec.data_mut().as_mut().unwrap();
     println!("len: {}", uvs.len());
 
-    for i in 0..uvs.len() {
-        uvs[i].x = 0.7 + rand::random::<f32>() * 0.3;
+    for uv in uvs {
+        uv.x = 0.7 + rand::random::<f32>() * 0.3;
     }
 }
 
