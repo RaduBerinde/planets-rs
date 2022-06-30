@@ -1,5 +1,3 @@
-use kiss3d::window::Window;
-
 use super::body::Body;
 
 pub struct System {

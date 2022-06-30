@@ -1,12 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
-
-use kiss3d::{
-    nalgebra::{Point3, Translation3, Vector3},
-    ncollide3d::procedural,
-    resource::Mesh,
-    scene::SceneNode,
-    window::Window,
-};
+use kiss3d::nalgebra::{Point3, Vector3};
 
 pub struct Body {
     // Constant fields.
@@ -20,9 +12,6 @@ pub struct Body {
     // Changing fields.
     pub position: Point3<f64>,
     pub velocity: Vector3<f64>,
-
-    scene_node: Option<SceneNode>,
-    mesh: Option<Rc<RefCell<Mesh>>>,
 }
 
 impl Body {
@@ -35,9 +24,6 @@ impl Body {
 
             position: Point3::default(),
             velocity: Vector3::default(),
-
-            scene_node: None,
-            mesh: None,
         }
     }
     pub fn sun() -> Body {

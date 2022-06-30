@@ -4,18 +4,12 @@ mod material;
 mod render;
 mod system;
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
-use crate::lighting::*;
-use crate::material::*;
 use crate::render::*;
 use crate::system::*;
 
 use kiss3d::camera::ArcBall;
 use kiss3d::event::MouseButton;
 use kiss3d::nalgebra::Point3;
-use kiss3d::resource::material::Material;
 
 use kiss3d::window::Window;
 
