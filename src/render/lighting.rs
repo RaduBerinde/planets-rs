@@ -6,7 +6,7 @@ use kiss3d::{
 };
 use rand;
 
-use super::body::Body;
+use crate::body::Body;
 
 pub fn init_sun_lighting(mesh: &Rc<RefCell<Mesh>>) {
     let mesh = mesh.borrow_mut();

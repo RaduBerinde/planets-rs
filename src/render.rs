@@ -1,3 +1,6 @@
+mod lighting;
+mod material;
+
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use kiss3d::{
@@ -10,12 +13,10 @@ use kiss3d::{
     window::Window,
 };
 
-use crate::{
-    body::Body,
-    lighting::{body_lighting, init_sun_lighting},
-    material::MyMaterial,
-    system::System,
-};
+use self::lighting::*;
+use self::material::*;
+
+use crate::{body::Body, system::System};
 
 pub struct Renderer<'a> {
     s: &'a mut System,
