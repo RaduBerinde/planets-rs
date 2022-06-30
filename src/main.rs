@@ -1,10 +1,9 @@
+use crate::{render::Renderer, system::*};
+use kiss3d::window::Window;
+
 mod body;
 mod render;
 mod system;
-
-use crate::{render::Renderer, system::*};
-
-use kiss3d::window::Window;
 
 fn main() {
     let mut s = System::new();

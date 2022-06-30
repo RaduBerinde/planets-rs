@@ -1,8 +1,6 @@
-mod lighting;
-mod material;
-
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
-
+use self::lighting::*;
+use self::material::*;
+use crate::{body::Body, system::System};
 use kiss3d::{
     camera::ArcBall,
     event::MouseButton,
@@ -12,11 +10,10 @@ use kiss3d::{
     scene::SceneNode,
     window::Window,
 };
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use self::lighting::*;
-use self::material::*;
-
-use crate::{body::Body, system::System};
+mod lighting;
+mod material;
 
 pub struct Renderer<'a> {
     s: &'a mut System,
