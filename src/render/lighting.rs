@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use kiss3d::{
-    nalgebra::{self, Point3},
+    nalgebra::{self, Point3, Vector3},
     resource::Mesh,
 };
 
@@ -43,4 +43,28 @@ pub fn body_lighting(body: &mut Body, mesh: &Rc<RefCell<Mesh>>, scale: f32) {
         let diffuse = f32::max(light_dir.dot(&normal), 0.0);
         uvs[i].x = 0.15 + 0.85 * diffuse;
     }
+}
+
+// Assumes that the start and end points are outside the sphere!.
+fn segment_intersects_sphere(
+    start: &Vector3<f32>,
+    end: &Vector3<f32>,
+    center: &Vector3<f32>,
+    radius: f32,
+) -> bool {
+    // Instead of using the typical ray/sphere intersection formula, we
+    // determine the closest point to the center on the line, and see how far it
+    // is from the center. This suffices because we don't care about the
+    // intersection points, just whether there is an intersection.
+    // In the future, this would also allow special handling of rays which are
+    // nearly tangent (e.g. to simulate Raleigh scattering).
+    let seg = end - start;
+
+    // Project the center point onto the0,1 vector and normalize distance to [0, 1].
+    let mut t = (center - start).dot(&seg) / seg.norm_squared();
+    t = f32::max(t, 0.0);
+    t = f32::min(t, 1.0);
+    let point = center + seg * t;
+
+    (point - center).norm_squared() <= radius * radius
 }
