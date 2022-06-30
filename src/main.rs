@@ -40,7 +40,7 @@ fn main() {
 
     let mut r = Renderer::new(&mut s, &mut window);
 
-    while window.render_with_camera(&mut camera) {
+    while r.frame(&mut window) {
         //for mut event in window.events().iter() {
         //    match event.value {
         //        WindowEvent::Scroll(xshift, yshift, modifiers) => {
@@ -50,6 +50,5 @@ fn main() {
         //        _ => {}
         //    }
         //}
-        r.frame();
     }
 }

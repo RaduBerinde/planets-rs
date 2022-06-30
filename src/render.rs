@@ -1,6 +1,8 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use kiss3d::{
+    camera::ArcBall,
+    event::MouseButton,
     nalgebra::{Point3, Translation3, Vector3},
     ncollide3d::procedural,
     resource::{Material, Mesh},
@@ -18,6 +20,7 @@ use crate::{
 pub struct Renderer<'a> {
     s: &'a mut System,
 
+    camera: ArcBall,
     bodies: HashMap<String, Box<BodyRenderState>>,
 }
 
@@ -37,10 +40,24 @@ impl<'a> Renderer<'a> {
 
         init_sun_lighting(&bodies.get("sun").unwrap().mesh);
 
-        Renderer { s: s, bodies }
+        let mut camera = ArcBall::new_with_frustrum(
+            std::f32::consts::PI / 4.0,
+            0.001,
+            10240.0,
+            Point3::new(0.0f32, 0.0, 10.0),
+            Point3::origin(),
+        );
+        camera.rebind_drag_button(Some(MouseButton::Button1));
+        camera.rebind_rotate_button(Some(MouseButton::Button2));
+        camera.set_dist_step(0.99);
+
+        camera.set_at(render_position(&s.earth));
+
+        Renderer { s, camera, bodies }
     }
 
-    pub fn frame(&mut self) {
+    // Returns false if the window should be closed.
+    pub fn frame(&mut self, window: &mut Window) -> bool {
         self.s.for_all(|body| {
             let pos = render_position(body);
             let translation = Translation3::new(pos.x, pos.y, pos.z);
@@ -50,7 +67,9 @@ impl<'a> Renderer<'a> {
             if body.name != "sun" {
                 body_lighting(body, &render_state.mesh, 2.0 * body.radius as f32);
             }
-        })
+        });
+
+        window.render_with_camera(&mut self.camera)
     }
 }
 
