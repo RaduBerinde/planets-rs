@@ -53,8 +53,8 @@ impl<'a> Renderer<'a> {
         camera.rebind_rotate_button(Some(MouseButton::Button2));
         camera.rebind_reset_key(None);
         camera.set_dist_step(0.99);
-        camera.set_min_dist(1e-6);
-        camera.set_max_dist(1e+6);
+        //camera.set_min_dist(1e-6);
+        //camera.set_max_dist(1e+6);
 
         camera.set_at(render_position(&s.earth));
 
@@ -68,12 +68,22 @@ impl<'a> Renderer<'a> {
             let translation = Translation3::new(pos.x, pos.y, pos.z);
             let render_state = self.bodies.get_mut(&body.name).unwrap();
             render_state.scene_node.set_local_translation(translation);
-
-            if body.name != "sun" {
-                body_lighting(body, &render_state.mesh, 2.0 * body.radius as f32);
-            }
             Renderer::render_body_hint(&self.camera, window, body);
         });
+
+        body_lighting(
+            &self.s.earth,
+            &self.bodies.get("earth").unwrap().mesh,
+            2.0 * self.s.earth.radius as f32,
+            &self.s.moon,
+        );
+
+        body_lighting(
+            &self.s.moon,
+            &self.bodies.get("moon").unwrap().mesh,
+            2.0 * self.s.moon.radius as f32,
+            &self.s.earth,
+        );
 
         window.render_with_camera(&mut self.camera)
     }
@@ -141,7 +151,7 @@ impl BodyRenderState {
         mat: &Rc<RefCell<Box<dyn Material + 'static>>>,
         window: &mut Window,
     ) -> Self {
-        let mesh = Mesh::from_trimesh(procedural::unit_sphere(50, 50, true), false);
+        let mesh = Mesh::from_trimesh(procedural::unit_sphere(200, 200, true), false);
         let mesh = Rc::new(RefCell::new(mesh));
         let mut scene_node = window.add_mesh(
             Rc::clone(&mesh),
