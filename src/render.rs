@@ -2,6 +2,7 @@ use self::lighting::*;
 use self::material::*;
 use crate::{body::Body, system::System};
 use kiss3d::camera::Camera;
+use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Point2;
 use kiss3d::nalgebra::Vector2;
@@ -14,6 +15,7 @@ use kiss3d::{
     scene::SceneNode,
     window::Window,
 };
+use std::path::Path;
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 mod lighting;
@@ -40,7 +42,7 @@ impl<'a> Renderer<'a> {
             bodies.insert(body.name.clone(), Box::new(render_state));
         });
 
-        init_sun_lighting(&bodies.get("sun").unwrap().mesh);
+        //init_sun_lighting(&bodies.get("sun").unwrap().mesh);
 
         let mut camera = ArcBall::new_with_frustrum(
             std::f32::consts::PI / 4.0,
@@ -57,6 +59,8 @@ impl<'a> Renderer<'a> {
         //camera.set_max_dist(1e+6);
 
         camera.set_at(render_position(&s.earth));
+
+        window.set_light(Light::StickToCamera);
 
         Renderer { s, camera, bodies }
     }
@@ -151,14 +155,19 @@ impl BodyRenderState {
         mat: &Rc<RefCell<Box<dyn Material + 'static>>>,
         window: &mut Window,
     ) -> Self {
-        let mesh = Mesh::from_trimesh(procedural::unit_sphere(200, 200, true), false);
+        let mesh = Mesh::from_trimesh(procedural::unit_sphere(50, 50, true), false);
         let mesh = Rc::new(RefCell::new(mesh));
         let mut scene_node = window.add_mesh(
             Rc::clone(&mesh),
             Vector3::new(1.0, 1.0, 1.0) * (2.0 * render_radius(body)),
         );
-        scene_node.set_color(body.color.x, body.color.y, body.color.z);
-        scene_node.set_material(Rc::clone(mat));
+        if body.name == "sun" {
+            scene_node.set_color(1.5, 1.5, 1.5);
+            scene_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
+        } else {
+            scene_node.set_color(body.color.x, body.color.y, body.color.z);
+            scene_node.set_material(Rc::clone(mat));
+        }
 
         BodyRenderState { scene_node, mesh }
     }

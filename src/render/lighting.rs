@@ -7,17 +7,6 @@ use kiss3d::{
 
 use crate::body::Body;
 
-pub fn init_sun_lighting(mesh: &Rc<RefCell<Mesh>>) {
-    let mesh = mesh.borrow_mut();
-
-    let mut uvs_gpu_vec = mesh.uvs().write().unwrap();
-    let uvs = uvs_gpu_vec.data_mut().as_mut().unwrap();
-
-    for uv in uvs {
-        uv.x = 0.7 + rand::random::<f32>() * 0.3;
-    }
-}
-
 // scale is applied to mesh coords.
 pub fn body_lighting(body: &Body, mesh: &Rc<RefCell<Mesh>>, scale: f32, opaque: &Body) {
     let center: Point3<f32> = nalgebra::convert(body.position);
