@@ -1,4 +1,5 @@
 use std::any::Any;
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use kiss3d::camera::Camera;
@@ -23,19 +24,18 @@ pub struct MyMaterial {
     ntransform: ShaderUniform<Matrix3<f32>>,
     proj: ShaderUniform<Matrix4<f32>>,
     view: ShaderUniform<Matrix4<f32>>,
-    /*light_pos: ShaderUniform<Point3<f32>>,
-    light_radius: ShaderUniform<f32>,
+    light_pos: ShaderUniform<Point3<f32>>,
+    //light_radius: ShaderUniform<f32>,
     occluder_pos: ShaderUniform<Point3<f32>>,
     occluder_radius: ShaderUniform<f32>,
-    */
 }
 
 #[derive(Default)]
 pub struct BodyLightingData {
-    pub light_pos: Vector3<f32>,
+    pub light_pos: Point3<f32>,
     pub light_radius: f32,
 
-    pub occluder_pos: Vector3<f32>,
+    pub occluder_pos: Point3<f32>,
     pub occluder_radius: f32,
 }
 
@@ -58,10 +58,10 @@ impl MyMaterial {
             ntransform: effect.get_uniform("ntransform").unwrap(),
             view: effect.get_uniform("view").unwrap(),
             proj: effect.get_uniform("proj").unwrap(),
-            //light_pos: effect.get_uniform("light_pos").unwrap(),
+            light_pos: effect.get_uniform("light_pos").unwrap(),
             //light_radius: effect.get_uniform("light_radius").unwrap(),
-            //occluder_pos: effect.get_uniform("occluder_pos").unwrap(),
-            //occluder_radius: effect.get_uniform("occluder_radius").unwrap(),
+            occluder_pos: effect.get_uniform("occluder_pos").unwrap(),
+            occluder_radius: effect.get_uniform("occluder_radius").unwrap(),
             effect,
         }
     }
@@ -116,15 +116,19 @@ impl Material for MyMaterial {
 
         mesh.bind(&mut self.pos, &mut self.normal, &mut self.tex_coord);
 
-        let lighting = data
-            .user_data()
-            .downcast_ref::<Rc<BodyLightingData>>()
-            .unwrap();
-
         ctxt.active_texture(Context::TEXTURE0);
         ctxt.bind_texture(Context::TEXTURE_2D, Some(&*data.texture()));
 
         self.color.upload(data.color());
+
+        let lighting = data
+            .user_data()
+            .downcast_ref::<Rc<RefCell<BodyLightingData>>>()
+            .unwrap()
+            .borrow();
+        self.light_pos.upload(&lighting.light_pos);
+        self.occluder_pos.upload(&lighting.occluder_pos);
+        self.occluder_radius.upload(&lighting.occluder_radius);
 
         ctxt.enable(Context::CULL_FACE);
         let _ = ctxt.polygon_mode(Context::FRONT_AND_BACK, Context::FILL);

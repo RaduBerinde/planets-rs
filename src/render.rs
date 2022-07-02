@@ -29,10 +29,10 @@ pub struct Renderer<'a> {
     sun_node: SceneNode,
 
     earth_node: SceneNode,
-    earth_lighting: Rc<BodyLightingData>,
+    earth_lighting: Rc<RefCell<BodyLightingData>>,
 
     moon_node: SceneNode,
-    moon_lighting: Rc<BodyLightingData>,
+    moon_lighting: Rc<RefCell<BodyLightingData>>,
 }
 
 impl<'a> Renderer<'a> {
@@ -63,12 +63,12 @@ impl<'a> Renderer<'a> {
             Box::new(MyMaterial::new()) as Box<dyn Material + 'static>
         ));
 
-        let mut init_body = |body: &Body| -> (SceneNode, Rc<BodyLightingData>) {
+        let mut init_body = |body: &Body| -> (SceneNode, Rc<RefCell<BodyLightingData>>) {
             let mut node = window.add_sphere(render_radius(body));
 
             node.set_color(body.color.x, body.color.y, body.color.z);
             node.set_material(Rc::clone(&mat));
-            let lighting = Rc::new(BodyLightingData::default());
+            let lighting = Rc::new(RefCell::new(BodyLightingData::default()));
 
             node.data_mut()
                 .get_object_mut()
@@ -103,6 +103,19 @@ impl<'a> Renderer<'a> {
             node.set_local_translation(translation);
             Renderer::render_body_hint(&self.camera, window, body);
         }
+        {
+            let mut earth_lighting = self.earth_lighting.borrow_mut();
+
+            earth_lighting.light_pos = render_position(&self.s.sun);
+            earth_lighting.light_radius = render_radius(&self.s.sun);
+            earth_lighting.occluder_pos = render_position(&self.s.moon);
+            earth_lighting.occluder_radius = render_radius(&self.s.moon);
+        }
+
+        //self.moon_lighting.light_pos = render_position(&self.s.sun);
+        //self.moon_lighting.light_radius = render_radius(&self.s.sun);
+        //self.moon_lighting.occluder_pos = render_position(&self.s.earth);
+        //self.moon_lighting.occluder_radius = render_radius(&self.s.earth);
 
         //body_lighting(
         //    &self.s.earth,
