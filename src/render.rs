@@ -25,25 +25,18 @@ pub struct Renderer<'a> {
     s: &'a mut System,
 
     camera: ArcBall,
-    bodies: HashMap<String, Box<BodyRenderState>>,
+
+    sun_node: SceneNode,
+
+    earth_node: SceneNode,
+    earth_lighting: Rc<BodyLightingData>,
+
+    moon_node: SceneNode,
+    moon_lighting: Rc<BodyLightingData>,
 }
 
 impl<'a> Renderer<'a> {
     pub fn new(s: &'a mut System, window: &mut Window) -> Self {
-        let mut bodies = HashMap::new();
-
-        let mat = Rc::new(RefCell::new(
-            Box::new(MyMaterial::new()) as Box<dyn Material + 'static>
-        ));
-
-        s.for_all(|body| {
-            let render_state = BodyRenderState::new(body, &mat, window);
-
-            bodies.insert(body.name.clone(), Box::new(render_state));
-        });
-
-        //init_sun_lighting(&bodies.get("sun").unwrap().mesh);
-
         let mut camera = ArcBall::new_with_frustrum(
             std::f32::consts::PI / 4.0,
             0.001,
@@ -62,32 +55,68 @@ impl<'a> Renderer<'a> {
 
         window.set_light(Light::StickToCamera);
 
-        Renderer { s, camera, bodies }
+        let mut sun_node = window.add_sphere(render_radius(&s.sun));
+        sun_node.set_color(1.5, 1.5, 1.5);
+        sun_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
+
+        let mat = Rc::new(RefCell::new(
+            Box::new(MyMaterial::new()) as Box<dyn Material + 'static>
+        ));
+
+        let mut init_body = |body: &Body| -> (SceneNode, Rc<BodyLightingData>) {
+            let mut node = window.add_sphere(render_radius(body));
+
+            node.set_color(body.color.x, body.color.y, body.color.z);
+            node.set_material(Rc::clone(&mat));
+            let lighting = Rc::new(BodyLightingData::default());
+
+            node.data_mut()
+                .get_object_mut()
+                .set_user_data(Box::new(Rc::clone(&lighting)));
+
+            (node, lighting)
+        };
+
+        let (earth_node, earth_lighting) = init_body(&s.earth);
+        let (moon_node, moon_lighting) = init_body(&s.moon);
+
+        Renderer {
+            s,
+            camera,
+            sun_node,
+            earth_node,
+            earth_lighting,
+            moon_node,
+            moon_lighting,
+        }
     }
 
     // Returns false if the window should be closed.
     pub fn frame(&mut self, window: &mut Window) -> bool {
-        self.s.for_all(|body| {
+        for (body, node) in [
+            (&self.s.sun, &mut self.sun_node),
+            (&self.s.earth, &mut self.earth_node),
+            (&self.s.moon, &mut self.moon_node),
+        ] {
             let pos = render_position(body);
             let translation = Translation3::new(pos.x, pos.y, pos.z);
-            let render_state = self.bodies.get_mut(&body.name).unwrap();
-            render_state.scene_node.set_local_translation(translation);
+            node.set_local_translation(translation);
             Renderer::render_body_hint(&self.camera, window, body);
-        });
+        }
 
-        body_lighting(
-            &self.s.earth,
-            &self.bodies.get("earth").unwrap().mesh,
-            2.0 * self.s.earth.radius as f32,
-            &self.s.moon,
-        );
+        //body_lighting(
+        //    &self.s.earth,
+        //    &self.bodies.get("earth").unwrap().mesh,
+        //    2.0 * self.s.earth.radius as f32,
+        //    &self.s.moon,
+        //);
 
-        body_lighting(
-            &self.s.moon,
-            &self.bodies.get("moon").unwrap().mesh,
-            2.0 * self.s.moon.radius as f32,
-            &self.s.earth,
-        );
+        //body_lighting(
+        //    &self.s.moon,
+        //    &self.bodies.get("moon").unwrap().mesh,
+        //    2.0 * self.s.moon.radius as f32,
+        //    &self.s.earth,
+        //);
 
         window.render_with_camera(&mut self.camera)
     }
@@ -144,34 +173,34 @@ impl<'a> Renderer<'a> {
     }
 }
 
-struct BodyRenderState {
-    scene_node: SceneNode,
-    mesh: Rc<RefCell<Mesh>>,
-}
-
-impl BodyRenderState {
-    pub fn new(
-        body: &Body,
-        mat: &Rc<RefCell<Box<dyn Material + 'static>>>,
-        window: &mut Window,
-    ) -> Self {
-        let mesh = Mesh::from_trimesh(procedural::unit_sphere(50, 50, true), false);
-        let mesh = Rc::new(RefCell::new(mesh));
-        let mut scene_node = window.add_mesh(
-            Rc::clone(&mesh),
-            Vector3::new(1.0, 1.0, 1.0) * (2.0 * render_radius(body)),
-        );
-        if body.name == "sun" {
-            scene_node.set_color(1.5, 1.5, 1.5);
-            scene_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
-        } else {
-            scene_node.set_color(body.color.x, body.color.y, body.color.z);
-            scene_node.set_material(Rc::clone(mat));
-        }
-
-        BodyRenderState { scene_node, mesh }
-    }
-}
+//struct BodyRenderState {
+//    scene_node: SceneNode,
+//    mesh: Rc<RefCell<Mesh>>,
+//}
+//
+//impl BodyRenderState {
+//    pub fn new(
+//        body: &Body,
+//        mat: &Rc<RefCell<Box<dyn Material + 'static>>>,
+//        window: &mut Window,
+//    ) -> Self {
+//        let mesh = Mesh::from_trimesh(procedural::unit_sphere(50, 50, true), false);
+//        let mesh = Rc::new(RefCell::new(mesh));
+//        let mut scene_node = window.add_mesh(
+//            Rc::clone(&mesh),
+//            Vector3::new(1.0, 1.0, 1.0) * (2.0 * render_radius(body)),
+//        );
+//        if body.name == "sun" {
+//            scene_node.set_color(1.5, 1.5, 1.5);
+//            scene_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
+//        } else {
+//            scene_node.set_color(body.color.x, body.color.y, body.color.z);
+//            scene_node.set_material(Rc::clone(mat));
+//        }
+//
+//        BodyRenderState { scene_node, mesh }
+//    }
+//}
 
 pub const RENDER_SCALE: f64 = 1e-5;
 
