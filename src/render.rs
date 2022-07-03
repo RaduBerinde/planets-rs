@@ -1,4 +1,4 @@
-use self::lighting::*;
+
 use self::material::*;
 use crate::{body::Body, system::System};
 use kiss3d::camera::Camera;
@@ -9,14 +9,13 @@ use kiss3d::nalgebra::Vector2;
 use kiss3d::{
     camera::ArcBall,
     event::MouseButton,
-    nalgebra::{Point3, Translation3, Vector3},
-    ncollide3d::procedural,
-    resource::{Material, Mesh},
+    nalgebra::{Point3, Translation3},
+    resource::{Material},
     scene::SceneNode,
     window::Window,
 };
 use std::path::Path;
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{cell::RefCell, rc::Rc};
 
 mod lighting;
 mod material;

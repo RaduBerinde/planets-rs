@@ -1,4 +1,4 @@
-use std::any::Any;
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -10,7 +10,7 @@ use kiss3d::resource::Material;
 use kiss3d::resource::{Effect, Mesh, ShaderAttribute, ShaderUniform};
 use kiss3d::scene::ObjectData;
 
-use crate::body::Body;
+
 
 /// The default material used to draw objects.
 pub struct MyMaterial {
