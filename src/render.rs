@@ -1,4 +1,3 @@
-
 use self::material::*;
 use crate::{body::Body, system::System};
 use kiss3d::camera::Camera;
@@ -10,14 +9,13 @@ use kiss3d::{
     camera::ArcBall,
     event::MouseButton,
     nalgebra::{Point3, Translation3},
-    resource::{Material},
+    resource::Material,
     scene::SceneNode,
     window::Window,
 };
 use std::path::Path;
 use std::{cell::RefCell, rc::Rc};
 
-mod lighting;
 mod material;
 
 pub struct Renderer<'a> {
@@ -111,24 +109,13 @@ impl<'a> Renderer<'a> {
             earth_lighting.occluder_radius = render_radius(&self.s.moon);
         }
 
-        //self.moon_lighting.light_pos = render_position(&self.s.sun);
-        //self.moon_lighting.light_radius = render_radius(&self.s.sun);
-        //self.moon_lighting.occluder_pos = render_position(&self.s.earth);
-        //self.moon_lighting.occluder_radius = render_radius(&self.s.earth);
-
-        //body_lighting(
-        //    &self.s.earth,
-        //    &self.bodies.get("earth").unwrap().mesh,
-        //    2.0 * self.s.earth.radius as f32,
-        //    &self.s.moon,
-        //);
-
-        //body_lighting(
-        //    &self.s.moon,
-        //    &self.bodies.get("moon").unwrap().mesh,
-        //    2.0 * self.s.moon.radius as f32,
-        //    &self.s.earth,
-        //);
+        {
+            let mut moon_lighting = self.moon_lighting.borrow_mut();
+            moon_lighting.light_pos = render_position(&self.s.sun);
+            moon_lighting.light_radius = render_radius(&self.s.sun);
+            moon_lighting.occluder_pos = render_position(&self.s.earth);
+            moon_lighting.occluder_radius = render_radius(&self.s.earth);
+        }
 
         window.render_with_camera(&mut self.camera)
     }

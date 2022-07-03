@@ -18,12 +18,7 @@ uniform vec3 occluder_pos;
 uniform float occluder_radius;
 
 float segment_intersects_sphere(vec3 start, vec3 end, vec3 center, float radius) {
-    // Instead of using the typical ray/sphere intersection formula, we
-    // determine the closest point to the center on the line, and see how far it
-    // is from the center. This suffices because we don't care about the
-    // intersection points, just whether there is an intersection.
-    // In the future, this would also allow special handling of rays which are
-    // nearly tangent (to simulate Raleigh scattering).
+    // Determine the point on the segment that is closest to the sphere center.
     vec3 seg = end - start;
 
     // Project the center point onto the line and normalize distance to [0, 1].
