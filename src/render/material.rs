@@ -1,4 +1,3 @@
-
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -9,8 +8,6 @@ use kiss3d::nalgebra::{Isometry3, Matrix3, Matrix4, Point2, Point3, Vector3};
 use kiss3d::resource::Material;
 use kiss3d::resource::{Effect, Mesh, ShaderAttribute, ShaderUniform};
 use kiss3d::scene::ObjectData;
-
-
 
 /// The default material used to draw objects.
 pub struct MyMaterial {
@@ -25,7 +22,7 @@ pub struct MyMaterial {
     proj: ShaderUniform<Matrix4<f32>>,
     view: ShaderUniform<Matrix4<f32>>,
     light_pos: ShaderUniform<Point3<f32>>,
-    //light_radius: ShaderUniform<f32>,
+    light_radius: ShaderUniform<f32>,
     occluder_pos: ShaderUniform<Point3<f32>>,
     occluder_radius: ShaderUniform<f32>,
 }
@@ -59,7 +56,7 @@ impl MyMaterial {
             view: effect.get_uniform("view").unwrap(),
             proj: effect.get_uniform("proj").unwrap(),
             light_pos: effect.get_uniform("light_pos").unwrap(),
-            //light_radius: effect.get_uniform("light_radius").unwrap(),
+            light_radius: effect.get_uniform("light_radius").unwrap(),
             occluder_pos: effect.get_uniform("occluder_pos").unwrap(),
             occluder_radius: effect.get_uniform("occluder_radius").unwrap(),
             effect,
@@ -127,6 +124,7 @@ impl Material for MyMaterial {
             .unwrap()
             .borrow();
         self.light_pos.upload(&lighting.light_pos);
+        self.light_radius.upload(&lighting.light_radius);
         self.occluder_pos.upload(&lighting.occluder_pos);
         self.occluder_radius.upload(&lighting.occluder_radius);
 
