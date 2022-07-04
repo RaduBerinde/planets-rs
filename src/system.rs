@@ -14,13 +14,4 @@ impl System {
             moon: Body::moon(),
         }
     }
-
-    //pub fn for_all<F>(&mut self, mut f: F)
-    //where
-    //    F: FnMut(&mut Body),
-    //{
-    //    f(&mut self.sun);
-    //    f(&mut self.earth);
-    //    f(&mut self.moon);
-    //}
 }

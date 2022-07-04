@@ -1,6 +1,7 @@
 use self::camera_mover::*;
 use self::material::*;
 use crate::{body::Body, system::System};
+use chrono::{DateTime, TimeZone, Utc};
 use kiss3d::camera::Camera;
 use kiss3d::event::Action;
 use kiss3d::event::Key;
@@ -9,6 +10,7 @@ use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Point2;
 use kiss3d::nalgebra::Vector2;
+use kiss3d::text::Font;
 use kiss3d::{
     camera::ArcBall,
     event::MouseButton,
@@ -37,6 +39,8 @@ pub struct Renderer<'a> {
 
     moon_node: SceneNode,
     moon_lighting: Rc<RefCell<BodyLightingData>>,
+
+    timestamp: DateTime<Utc>,
 }
 
 impl<'a> Renderer<'a> {
@@ -45,7 +49,7 @@ impl<'a> Renderer<'a> {
             std::f32::consts::PI / 4.0,
             0.001,
             10240.0,
-            Point3::new(0.0f32, 0.0, 10.0),
+            Point3::new(0.0, 0.0, 8.0),
             Point3::origin(),
         );
         camera.rebind_drag_button(Some(MouseButton::Button1));
@@ -94,6 +98,7 @@ impl<'a> Renderer<'a> {
             earth_lighting,
             moon_node,
             moon_lighting,
+            timestamp: Utc.ymd(1900, 1, 1).and_hms(0, 0, 0),
         }
     }
 
@@ -101,6 +106,14 @@ impl<'a> Renderer<'a> {
     pub fn frame(&mut self, window: &mut Window) -> bool {
         self.handle_events(window);
         self.camera_mover.maybe_move_camera(&mut self.camera);
+
+        window.draw_text(
+            &self.timestamp.to_string(),
+            &Point2::new(20.0, 10.0),
+            100.0,
+            &Font::default(),
+            &Point3::new(0.8, 0.8, 0.8),
+        );
 
         for (body, node) in [
             (&self.s.sun, &mut self.sun_node),
@@ -195,7 +208,7 @@ impl<'a> Renderer<'a> {
                     match self.tab_press_count % 3 {
                         0 => self
                             .camera_mover
-                            .move_to(render_position(&self.s.earth), 5.0),
+                            .move_to(render_position(&self.s.earth), 8.0),
                         1 => self
                             .camera_mover
                             .move_to(render_position(&self.s.moon), 2.0),
@@ -211,35 +224,6 @@ impl<'a> Renderer<'a> {
         }
     }
 }
-
-//struct BodyRenderState {
-//    scene_node: SceneNode,
-//    mesh: Rc<RefCell<Mesh>>,
-//}
-//
-//impl BodyRenderState {
-//    pub fn new(
-//        body: &Body,
-//        mat: &Rc<RefCell<Box<dyn Material + 'static>>>,
-//        window: &mut Window,
-//    ) -> Self {
-//        let mesh = Mesh::from_trimesh(procedural::unit_sphere(50, 50, true), false);
-//        let mesh = Rc::new(RefCell::new(mesh));
-//        let mut scene_node = window.add_mesh(
-//            Rc::clone(&mesh),
-//            Vector3::new(1.0, 1.0, 1.0) * (2.0 * render_radius(body)),
-//        );
-//        if body.name == "sun" {
-//            scene_node.set_color(1.5, 1.5, 1.5);
-//            scene_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
-//        } else {
-//            scene_node.set_color(body.color.x, body.color.y, body.color.z);
-//            scene_node.set_material(Rc::clone(mat));
-//        }
-//
-//        BodyRenderState { scene_node, mesh }
-//    }
-//}
 
 pub const RENDER_SCALE: f64 = 1e-5;
 

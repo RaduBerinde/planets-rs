@@ -35,6 +35,7 @@ impl CameraMover {
             let time_left = target_time - now;
             if time_left.is_zero() {
                 camera.set_at(self.target_at);
+                camera.set_dist(self.target_dist);
                 self.target_time = None;
                 return;
             }

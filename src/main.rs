@@ -3,6 +3,7 @@ use kiss3d::window::Window;
 
 mod body;
 mod render;
+mod simulate;
 mod system;
 
 fn main() {

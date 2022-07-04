@@ -9,3 +9,4 @@ edition = "2021"
 # kiss3d = "0.30"
 kiss3d = { git = "https://github.com/sebcrozet/kiss3d.git", rev = "c8c34df" }
 rand = "0.8.5"
+chrono = "0.4"

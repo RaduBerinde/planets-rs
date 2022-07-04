@@ -1,4 +1,4 @@
-use kiss3d::nalgebra::{Point3, Vector3};
+use kiss3d::nalgebra::Point3;
 
 pub struct Body {
     // Constant fields.
@@ -11,7 +11,6 @@ pub struct Body {
 
     // Changing fields.
     pub position: Point3<f64>,
-    pub velocity: Vector3<f64>,
 }
 
 impl Body {
@@ -23,7 +22,6 @@ impl Body {
             color,
 
             position: Point3::default(),
-            velocity: Vector3::default(),
         }
     }
     pub fn sun() -> Body {
