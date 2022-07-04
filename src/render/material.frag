@@ -45,11 +45,15 @@ float point_source_shadow(vec3 light_vec, vec3 occluder_vec, float occluder_radi
     return clamp((sqdist/sqradius - full_shadow_radius_fraction_sq) / (1.0 - full_shadow_radius_fraction_sq), 0.0, 1.0);
 }
 
+// circle_circle_intersection returns the area of the intersection
+// between the unit circle and a circle of radius r with the center
+// at distance d from the unit circle center.
 float circle_circle_intersection(float r, float d) {
-   if (d >= r+1.0) {
+   const float eps = 0.001;
+   if (d > r+1.0-eps) {
       return 0.0;
    }
-   if (d < 0.001 || d+r <= 1.0 || d+1.0 <= r) {
+   if (d < eps || d+r < 1.0+eps || d+1.0 < r+eps) {
       return pi * min(r,1.0)*min(r,1.0);
    }
 
@@ -148,7 +152,6 @@ void main() {
   vec3 normal = normalize(frag_normal);
   vec3 light_vec = light_pos - frag_pos;
   float light_vec_len = length(light_vec);
-  //vec3 light_dir = normalize(light_pos - frag_pos);
 
   float lambertian = max(dot(light_vec, normal) / light_vec_len, 0.0);
   if (lambertian > 0.0) {
