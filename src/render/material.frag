@@ -17,8 +17,10 @@ uniform float light_radius;
 uniform vec3 occluder_pos;
 uniform float occluder_radius;
 
+const float pi = 3.141592653589793238;
+
 // To create softer shadows, full shadow is only when a ray intersects an occluder that this much smaller.
-const float full_shadow_radius_fraction = 0.90;
+const float full_shadow_radius_fraction = 0.95;
 const float full_shadow_radius_fraction_sq = full_shadow_radius_fraction * full_shadow_radius_fraction;
 
 float point_source_shadow(vec3 light_vec, vec3 occluder_vec, float occluder_radius) {
@@ -41,6 +43,18 @@ float point_source_shadow(vec3 light_vec, vec3 occluder_vec, float occluder_radi
     //         = (sqdist/sradius - sqfraction) / (1 - sqfraction)
     
     return clamp((sqdist/sqradius - full_shadow_radius_fraction_sq) / (1.0 - full_shadow_radius_fraction_sq), 0.0, 1.0);
+}
+
+float circle_circle_intersection(float r, float d) {
+   if (d >= r+1.0) {
+      return 0.0;
+   }
+   if (d < 0.001 || d+r <= 1.0 || d+1.0 <= r) {
+      return pi * min(r,1.0)*min(r,1.0);
+   }
+
+   float result = r*r*acos((d*d+r*r-1.0) / (2.0*d*r)) + acos((d*d+1.0-r*r) / (2.0*d)) - 0.5*sqrt((-d+r+1.0)*(d+r-1.0)*(d-r+1.0)*(d+r+1.0));
+   return max(result, 0.0);
 }
 
 float spherical_source_shadow(vec3 light_vec, float light_vec_len, float light_radius, vec3 occluder_vec, float occluder_radius) {
@@ -68,33 +82,66 @@ float spherical_source_shadow(vec3 light_vec, float light_vec_len, float light_r
    // and check if that extended cone contains the occluder center. We have to
    // move the cone back by occluder_radius * light_vec_len / light_radius.
    vec3 extended_cone_apex = - light_vec * (occluder_radius / light_radius);
-   float cos_phi = light_vec_len / sqrt(light_vec_len*light_vec_len + light_radius*light_radius);
+   float light_edge_len = sqrt(light_vec_len*light_vec_len + light_radius*light_radius);
+   float cos_phi = light_vec_len / light_edge_len;
    if (dot(normalize(light_vec - extended_cone_apex), normalize(occluder_vec - extended_cone_apex)) < cos_phi) {
       return 1.0;
    }
+
+   // Consider the plane perpendicular to light_vec. We project the occluder
+   // onto this plane, pretending that the projection is a circle. In general,
+   // the projection on an arbitrary plane is not a circle but it is a good
+   // approximation for our purpose (our light cone angles are small).
    
-   vec3 axis1 = normalize(cross(light_vec, vec3(0.0, 0.0, 1.0)));
-   vec3 axis2 = normalize(cross(light_vec, axis1));
+   vec3 occluder_vec_dir = occluder_vec / occluder_vec_len;
+
+   float cos_theta = dot(occluder_vec_dir, light_vec) / light_vec_len;
+   float sin_theta = sqrt(1.0 - cos_theta*cos_theta);
+   float projected_distance = light_vec_len / cos_theta;
+   float projected_distance_to_light = projected_distance * sin_theta;
+   float projected_radius = occluder_radius / occluder_vec_len * projected_distance;
    
-   const int num_rings = 32;
-   const int samples_per_ring = 32;
-   float u_step = 1.0 / float(num_rings-1);
-   float v_step = 2.0 * 3.141592 / float(samples_per_ring);
+   //if (projected_distance_to_light >= light_radius + projected_radius) {
+   //   return 1.0;
+   //}
+
+   //if (projected_distance_to_light + projected_radius <= light_radius) {
+   //   // Projected circle is contained in the light circle; return fraction of
+   //   // visible area.
+   //   return 1.0 - projected_radius*projected_radius / (light_radius*light_radius);
+   //}
+   return 1.0 - circle_circle_intersection(projected_radius / light_radius, projected_distance_to_light / light_radius) / pi;
+
+   //float R = light_radius;
+   //float r = projected_radius;
+   //float d = projected_distance_to_light;
+   ////float intersection = r*r*acos((d*d+r*r-R*R) / (2.0*d*r)) + R*R*acos((d*d+R*R-r*r) / (2.0*d*R));
+   //float intersection = r*r*acos((d*d+r*r-R*R) / (2.0*d*r)) + R*R*acos((d*d+R*R-r*r) / (2.0*d*R)) - 0.5*sqrt((-d+r+R)*(d+r-R)*(d-r+R)*(d+r+R));
+   //return clamp(1.0 - intersection / (pi * (light_radius*light_radius)), 0.0, 1.0);
+
    
-   float result = 0.0;
-   float u = 0.0;
-   for (int i = 0; i < num_rings; i++) {
-      float v = 0.0;
-      for (int j = 0; j < samples_per_ring; j++) {
-         float r = light_radius * sqrt(u);
-         vec3 light_sample_pos = light_vec + r * (axis1 * sin(v) + axis2 * cos(v));
-         result += point_source_shadow(light_sample_pos, occluder_vec, occluder_radius);
-         v += v_step;
-      }
-      u += u_step;
-   }
-   
-   return result / float(num_rings * samples_per_ring);
+   //vec3 axis1 = normalize(cross(light_vec, vec3(0.0, 0.0, 1.0)));
+   //vec3 axis2 = normalize(cross(light_vec, axis1));
+   //
+   //const int num_rings = 16;
+   //const int samples_per_ring = 16;
+   //float u_step = 1.0 / float(num_rings-1);
+   //float v_step = 2.0 * pi / float(samples_per_ring);
+   //
+   //float result = 0.0;
+   //float u = 0.0;
+   //for (int i = 0; i < num_rings; i++) {
+   //   float v = 0.0;
+   //   for (int j = 0; j < samples_per_ring; j++) {
+   //      float r = light_radius * sqrt(u);
+   //      vec3 light_sample_pos = light_vec + r * (axis1 * sin(v) + axis2 * cos(v));
+   //      result += point_source_shadow(light_sample_pos, occluder_vec, occluder_radius);
+   //      v += v_step;
+   //   }
+   //   u += u_step;
+   //}
+   //
+   //return result / float(num_rings * samples_per_ring);
 }
 
 void main() {
