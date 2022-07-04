@@ -18,15 +18,5 @@ fn main() {
     let mut window = Window::new_with_size("planets-rs", 1200, 800);
     let mut r = Renderer::new(&mut s, &mut window);
 
-    while r.frame(&mut window) {
-        //for mut event in window.events().iter() {
-        //    match event.value {
-        //        WindowEvent::Scroll(xshift, yshift, modifiers) => {
-        //            // dont override the default mouse handler
-        //            event.value = WindowEvent::Scroll(xshift, -yshift * 0.3, modifiers);
-        //        }
-        //        _ => {}
-        //    }
-        //}
-    }
+    while r.frame(&mut window) {}
 }
