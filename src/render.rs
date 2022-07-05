@@ -1,5 +1,6 @@
 use self::camera_mover::*;
 use self::material::*;
+use crate::simulate::*;
 use crate::{body::Body, system::System};
 use chrono::{DateTime, TimeZone, Utc};
 use kiss3d::camera::Camera;
@@ -40,7 +41,7 @@ pub struct Renderer<'a> {
     moon_node: SceneNode,
     moon_lighting: Rc<RefCell<BodyLightingData>>,
 
-    timestamp: DateTime<Utc>,
+    snapshot: Snapshot,
 }
 
 impl<'a> Renderer<'a> {
@@ -98,7 +99,7 @@ impl<'a> Renderer<'a> {
             earth_lighting,
             moon_node,
             moon_lighting,
-            timestamp: Utc.ymd(1900, 1, 1).and_hms(0, 0, 0),
+            snapshot: Snapshot::simple(),
         }
     }
 
@@ -108,7 +109,7 @@ impl<'a> Renderer<'a> {
         self.camera_mover.maybe_move_camera(&mut self.camera);
 
         window.draw_text(
-            &self.timestamp.to_string(),
+            &self.snapshot.timestamp.to_string(),
             &Point2::new(20.0, 10.0),
             100.0,
             &Font::default(),

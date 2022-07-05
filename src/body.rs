@@ -13,6 +13,10 @@ pub struct Body {
     pub position: Point3<f64>,
 }
 
+pub const SUN_MASS: f64 = 1.9885e+30;
+pub const EARTH_MASS: f64 = 5.97237e+24;
+pub const MOON_MASS: f64 = 7.34767309e+22;
+
 impl Body {
     pub fn new(name: String, mass: f64, radius: f64, color: Point3<f32>) -> Body {
         Body {
@@ -27,7 +31,7 @@ impl Body {
     pub fn sun() -> Body {
         Body::new(
             String::from("sun"),
-            1.9885e+30,
+            SUN_MASS,
             696342.0,
             Point3::new(1.0, 0.8, 0.3),
         )
@@ -36,7 +40,7 @@ impl Body {
     pub fn earth() -> Body {
         Body::new(
             String::from("earth"),
-            5.97237e+24,
+            EARTH_MASS,
             6378.137, // equatorial
             Point3::new(0.1, 0.5, 1.0),
         )
@@ -45,7 +49,7 @@ impl Body {
     pub fn moon() -> Body {
         Body::new(
             String::from("moon"),
-            7.34767309e+22,
+            MOON_MASS,
             1737.5,
             Point3::new(0.7, 0.7, 0.7),
         )
