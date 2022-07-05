@@ -3,7 +3,7 @@ use self::material::*;
 use crate::body::Body;
 use crate::body::Body::*;
 use crate::simulate::*;
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{TimeZone};
 use kiss3d::camera::Camera;
 use kiss3d::event::Action;
 use kiss3d::event::Key;
