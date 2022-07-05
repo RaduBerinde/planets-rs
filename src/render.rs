@@ -1,7 +1,8 @@
 use self::camera_mover::*;
 use self::material::*;
+use crate::body::Body;
+use crate::body::Body::*;
 use crate::simulate::*;
-use crate::{body::Body, system::System};
 use chrono::{DateTime, TimeZone, Utc};
 use kiss3d::camera::Camera;
 use kiss3d::event::Action;
@@ -26,9 +27,7 @@ use std::{cell::RefCell, rc::Rc};
 mod camera_mover;
 mod material;
 
-pub struct Renderer<'a> {
-    s: &'a mut System,
-
+pub struct Renderer {
     camera: ArcBall,
     camera_mover: CameraMover,
     tab_press_count: u32,
@@ -44,8 +43,10 @@ pub struct Renderer<'a> {
     snapshot: Snapshot,
 }
 
-impl<'a> Renderer<'a> {
-    pub fn new(s: &'a mut System, window: &mut Window) -> Self {
+impl Renderer {
+    pub fn new(window: &mut Window) -> Self {
+        let snapshot = Snapshot::simple();
+
         let mut camera = ArcBall::new_with_frustrum(
             std::f32::consts::PI / 4.0,
             0.001,
@@ -60,11 +61,9 @@ impl<'a> Renderer<'a> {
         //camera.set_min_dist(1e-6);
         //camera.set_max_dist(1e+6);
 
-        camera.set_at(render_position(&s.earth));
-
         window.set_light(Light::StickToCamera);
 
-        let mut sun_node = window.add_sphere(render_radius(&s.sun));
+        let mut sun_node = window.add_sphere(render_radius(Sun));
         sun_node.set_color(1.5, 1.5, 1.5);
         sun_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
 
@@ -72,10 +71,11 @@ impl<'a> Renderer<'a> {
             Box::new(MyMaterial::new()) as Box<dyn Material + 'static>
         ));
 
-        let mut init_body = |body: &Body| -> (SceneNode, Rc<RefCell<BodyLightingData>>) {
+        let mut init_body = |body: Body| -> (SceneNode, Rc<RefCell<BodyLightingData>>) {
             let mut node = window.add_sphere(render_radius(body));
 
-            node.set_color(body.color.x, body.color.y, body.color.z);
+            let color = body.props().color;
+            node.set_color(color.0, color.1, color.2);
             node.set_material(Rc::clone(&mat));
             let lighting = Rc::new(RefCell::new(BodyLightingData::default()));
 
@@ -86,11 +86,10 @@ impl<'a> Renderer<'a> {
             (node, lighting)
         };
 
-        let (earth_node, earth_lighting) = init_body(&s.earth);
-        let (moon_node, moon_lighting) = init_body(&s.moon);
+        let (earth_node, earth_lighting) = init_body(Earth);
+        let (moon_node, moon_lighting) = init_body(Moon);
 
-        Renderer {
-            s,
+        let mut renderer = Renderer {
             camera,
             camera_mover: CameraMover::new(),
             tab_press_count: 0,
@@ -99,8 +98,12 @@ impl<'a> Renderer<'a> {
             earth_lighting,
             moon_node,
             moon_lighting,
-            snapshot: Snapshot::simple(),
-        }
+            snapshot: snapshot,
+        };
+
+        renderer.camera.set_at(renderer.render_position(Earth));
+
+        renderer
     }
 
     // Returns false if the window should be closed.
@@ -116,38 +119,39 @@ impl<'a> Renderer<'a> {
             &Point3::new(0.8, 0.8, 0.8),
         );
 
-        for (body, node) in [
-            (&self.s.sun, &mut self.sun_node),
-            (&self.s.earth, &mut self.earth_node),
-            (&self.s.moon, &mut self.moon_node),
-        ] {
-            let pos = render_position(body);
+        for body in [Sun, Earth, Moon] {
+            let pos = self.render_position(body);
             let translation = Translation3::new(pos.x, pos.y, pos.z);
+            let node = match body {
+                Sun => &mut self.sun_node,
+                Earth => &mut self.earth_node,
+                Moon => &mut self.moon_node,
+            };
             node.set_local_translation(translation);
-            Renderer::render_body_hint(&self.camera, window, body);
+            self.render_body_hint(&self.camera, window, body);
         }
         {
             let mut earth_lighting = self.earth_lighting.borrow_mut();
 
-            earth_lighting.light_pos = render_position(&self.s.sun);
-            earth_lighting.light_radius = render_radius(&self.s.sun);
-            earth_lighting.occluder_pos = render_position(&self.s.moon);
-            earth_lighting.occluder_radius = render_radius(&self.s.moon);
+            earth_lighting.light_pos = self.render_position(Sun);
+            earth_lighting.light_radius = render_radius(Sun);
+            earth_lighting.occluder_pos = self.render_position(Moon);
+            earth_lighting.occluder_radius = render_radius(Moon);
         }
 
         {
             let mut moon_lighting = self.moon_lighting.borrow_mut();
-            moon_lighting.light_pos = render_position(&self.s.sun);
-            moon_lighting.light_radius = render_radius(&self.s.sun);
-            moon_lighting.occluder_pos = render_position(&self.s.earth);
-            moon_lighting.occluder_radius = render_radius(&self.s.earth);
+            moon_lighting.light_pos = self.render_position(Sun);
+            moon_lighting.light_radius = render_radius(Sun);
+            moon_lighting.occluder_pos = self.render_position(Earth);
+            moon_lighting.occluder_radius = render_radius(Earth);
         }
 
         window.render_with_camera(&mut self.camera)
     }
 
-    fn render_body_hint(camera: &ArcBall, window: &mut Window, body: &Body) {
-        let body_pos = render_position(body);
+    fn render_body_hint(&self, camera: &ArcBall, window: &mut Window, body: Body) {
+        let body_pos = self.render_position(body);
 
         // Only show the hint if we see the object as very small.
         let dist = (body_pos - camera.eye()).norm();
@@ -166,33 +170,38 @@ impl<'a> Renderer<'a> {
         let scale = nalgebra::convert::<_, Vector2<f32>>(window.size())
             * (0.5 / window.scale_factor() as f32);
         let point = projected.coords.xy().component_mul(&scale);
+        let color = Point3::new(
+            body.props().color.0,
+            body.props().color.1,
+            body.props().color.2,
+        );
 
-        if body.name == "sun" || body.name == "earth" {
+        if body == Sun || body == Earth {
             const DELTA: f32 = 12.0;
             window.draw_planar_line(
                 &Point2::new(point.x, point.y - DELTA),
                 &Point2::new(point.x, point.y + DELTA),
-                &body.color,
+                &color,
             );
 
             window.draw_planar_line(
                 &Point2::new(point.x - DELTA, point.y),
                 &Point2::new(point.x + DELTA, point.y),
-                &body.color,
+                &color,
             );
         }
-        if body.name == "sun" || body.name == "moon" {
+        if body == Sun || body == Moon {
             const DELTA: f32 = 8.5;
             window.draw_planar_line(
                 &Point2::new(point.x - DELTA, point.y - DELTA),
                 &Point2::new(point.x + DELTA, point.y + DELTA),
-                &body.color,
+                &color,
             );
 
             window.draw_planar_line(
                 &Point2::new(point.x - DELTA, point.y + DELTA),
                 &Point2::new(point.x + DELTA, point.y - DELTA),
-                &body.color,
+                &color,
             );
         }
     }
@@ -207,15 +216,9 @@ impl<'a> Renderer<'a> {
                 WindowEvent::Key(Key::Tab, Action::Press, _) => {
                     self.tab_press_count += 1;
                     match self.tab_press_count % 3 {
-                        0 => self
-                            .camera_mover
-                            .move_to(render_position(&self.s.earth), 8.0),
-                        1 => self
-                            .camera_mover
-                            .move_to(render_position(&self.s.moon), 2.0),
-                        2 => self
-                            .camera_mover
-                            .move_to(render_position(&self.s.sun), 50.0),
+                        0 => self.camera_mover.move_to(self.render_position(Earth), 8.0),
+                        1 => self.camera_mover.move_to(self.render_position(Moon), 2.0),
+                        2 => self.camera_mover.move_to(self.render_position(Sun), 50.0),
                         _ => (),
                     }
                     event.inhibited = true;
@@ -232,14 +235,21 @@ fn to_render_scale(d: f64) -> f32 {
     (d * RENDER_SCALE) as f32
 }
 
-pub fn render_radius(body: &Body) -> f32 {
-    to_render_scale(body.radius)
+pub fn render_radius(body: Body) -> f32 {
+    to_render_scale(body.props().radius)
 }
 
-pub fn render_position(body: &Body) -> Point3<f32> {
-    Point3::new(
-        to_render_scale(body.position.x),
-        to_render_scale(body.position.y),
-        to_render_scale(body.position.z),
-    )
+impl Renderer {
+    pub fn render_position(&self, body: Body) -> Point3<f32> {
+        let pos = match body {
+            Sun => Point3::default(),
+            Earth => self.snapshot.earth_position,
+            Moon => self.snapshot.moon_position,
+        };
+        Point3::new(
+            to_render_scale(pos.x),
+            to_render_scale(pos.y),
+            to_render_scale(pos.z),
+        )
+    }
 }

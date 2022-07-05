@@ -1,4 +1,4 @@
-use super::body::{EARTH_MASS, MOON_MASS, SUN_MASS};
+use super::body::BodyProperties;
 use chrono::{DateTime, TimeZone, Utc};
 use kiss3d::nalgebra::{Point3, Vector3};
 
@@ -66,11 +66,11 @@ fn gacc_earth_and_moon(
     moon_position: &Point3<f64>,
 ) -> (Vector3<f64>, Vector3<f64>) {
     let sun_pos = Point3::<f64>::new(0.0, 0.0, 0.0);
-    let earth_acc =
-        gacc(earth_position, &sun_pos, SUN_MASS) + gacc(earth_position, moon_position, MOON_MASS);
+    let earth_acc = gacc(earth_position, &sun_pos, BodyProperties::SUN.mass)
+        + gacc(earth_position, moon_position, BodyProperties::MOON.mass);
 
-    let moon_acc =
-        gacc(moon_position, &sun_pos, SUN_MASS) + gacc(moon_position, earth_position, EARTH_MASS);
+    let moon_acc = gacc(moon_position, &sun_pos, BodyProperties::SUN.mass)
+        + gacc(moon_position, earth_position, BodyProperties::EARTH.mass);
 
     (earth_acc, moon_acc)
 }
