@@ -7,7 +7,6 @@ use crate::control::ControlEvent;
 use crate::simulate::*;
 use kiss3d::camera::Camera;
 
-
 use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Point2;
@@ -45,9 +44,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(window: &mut Window) -> Self {
-        let snapshot = Snapshot::simple();
-
+    pub fn new(snapshot: &Snapshot, window: &mut Window) -> Self {
         let mut camera = ArcBall::new_with_frustrum(
             std::f32::consts::PI / 4.0,
             0.001,
@@ -99,7 +96,7 @@ impl Renderer {
             earth_lighting,
             moon_node,
             moon_lighting,
-            snapshot: snapshot,
+            snapshot: *snapshot,
         };
 
         renderer.camera_mover.move_to_with_transition_time(
@@ -109,6 +106,10 @@ impl Renderer {
         );
 
         renderer
+    }
+
+    pub fn set_snapshot(&mut self, snapshot: &Snapshot) {
+        self.snapshot = *snapshot
     }
 
     // Returns false if the window should be closed.

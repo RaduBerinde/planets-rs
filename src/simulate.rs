@@ -6,7 +6,7 @@ use std::{
 use crate::control::ControlEvent;
 
 use super::body::BodyProperties;
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, TimeZone, Utc};
 use kiss3d::nalgebra::{Point3, Vector3};
 
 #[derive(Copy, Clone)]
@@ -25,9 +25,9 @@ impl Snapshot {
         Snapshot {
             timestamp: Utc.ymd(1900, 1, 1).and_hms(0, 0, 0),
             earth_position: Point3::new(EARTH_APHELION, 0.0, 0.0),
-            earth_velocity: Vector3::new(0.0, 0.0, 0.0),
-            moon_position: Point3::new(EARTH_APHELION - 372000.0, 0.0, 0.0),
-            moon_velocity: Vector3::new(0.0, 0.0, 0.0),
+            earth_velocity: Vector3::new(0.0, 29.3, 0.0),
+            moon_position: Point3::new(EARTH_APHELION - 372_000.0, 0.0, 0.0),
+            moon_velocity: Vector3::new(0.0, 29.3 + 1.022, 0.0),
         }
     }
 
@@ -42,7 +42,7 @@ impl Snapshot {
     }
 }
 
-const DEFAULT_STEP: f64 = 1.0; // seconds
+const DEFAULT_STEP: f64 = 60.0; // seconds
 
 fn step(s: &Snapshot, dt: f64) -> Snapshot {
     // We use velocity Verlet integration:
@@ -72,6 +72,12 @@ fn gacc_earth_and_moon(
     moon_position: &Point3<f64>,
 ) -> (Vector3<f64>, Vector3<f64>) {
     let sun_pos = Point3::<f64>::new(0.0, 0.0, 0.0);
+
+    //println!(
+    //    "sun-earth acc: {}",
+    //    gacc(earth_position, &sun_pos, BodyProperties::SUN.mass)
+    //);
+
     let earth_acc = gacc(earth_position, &sun_pos, BodyProperties::SUN.mass)
         + gacc(earth_position, moon_position, BodyProperties::MOON.mass);
 
@@ -83,10 +89,12 @@ fn gacc_earth_and_moon(
 
 const G: f64 = 6.67430e-11; // N*m^2/kg^2
 
-// Returns the acceleration vector due to gravity as a vector (with m/s^2 components).
+// Returns the acceleration vector due to gravity as a vector (with km/s^2 components).
 fn gacc(pos: &Point3<f64>, other_pos: &Point3<f64>, other_mass: f64) -> Vector3<f64> {
     let vec = other_pos - pos;
-    let amount = G * other_mass / vec.norm_squared();
+    // The 1e-9 adjustment is km^2 -> m^2 conversion for the denominator
+    // and m -> km conversion for the result.
+    let amount = G * other_mass / vec.norm_squared() * 1e-9;
     return vec.normalize() * amount;
 }
 
@@ -108,40 +116,68 @@ pub enum State {
 }
 
 impl Simulation {
-    fn start(&mut self) {
+    pub fn new(start: Snapshot) -> Self {
+        Simulation {
+            current: start,
+            //speed: chrono::Duration::days(1),
+            speed: chrono::Duration::seconds(1),
+            state: State::Stopped,
+        }
+    }
+
+    pub fn start(&mut self) {
         self.state = State::Running(StartInfo {
             instant: Instant::now(),
             timestamp: self.current.timestamp,
         });
     }
 
-    fn stop(&mut self) {
+    pub fn stop(&mut self) {
         self.state = State::Stopped
     }
 
-    fn toggle_start(&mut self) {
+    pub fn toggle_start(&mut self) {
         match &self.state {
             State::Running(_) => self.stop(),
             State::Stopped => self.start(),
         }
     }
 
-    fn advance(&mut self) {
+    pub fn advance(&mut self) {
         match &self.state {
             State::Running(start_info) => {
+                let elapsed_secs = start_info.instant.elapsed().as_secs_f64();
                 let new_timestamp = start_info.timestamp
-                    + chrono::Duration::from_std(start_info.instant.elapsed()).unwrap();
+                    + chrono::Duration::seconds(
+                        (self.speed.num_seconds() as f64 * elapsed_secs) as i64,
+                    );
                 self.current = self.current.advance_to(new_timestamp);
             }
             _ => {}
         }
     }
 
+    pub fn adjust_speed(&mut self, new_speed: chrono::Duration) {
+        match &self.state {
+            State::Running(_) => {
+                // We need to stop and restart because advance assumes the
+                // speed is unchanged since start.
+                self.stop();
+                self.speed = new_speed;
+                self.start();
+            }
+
+            State::Stopped => {
+                self.speed = new_speed;
+            }
+        }
+    }
+
     pub fn handle_event(&mut self, ev: ControlEvent) {
         match ev {
             ControlEvent::StartStop => self.toggle_start(),
-            ControlEvent::Faster => self.speed = self.speed.mul(2),
-            ControlEvent::Slower => self.speed = self.speed.div(2),
+            ControlEvent::Faster => self.adjust_speed(self.speed.mul(2)),
+            ControlEvent::Slower => self.adjust_speed(self.speed.div(2)),
             _ => {}
         }
     }

@@ -12,3 +12,5 @@ kiss3d = { git = "https://github.com/sebcrozet/kiss3d.git", rev = "c8c34df" }
 rand = "0.8.5"
 chrono = "0.4"
 enum-iterator = "1.1.3"
+enum-map = "2.4.0"
+lazy_static = "1.4.0"
