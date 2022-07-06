@@ -2,12 +2,12 @@ use self::camera_mover::*;
 use self::material::*;
 use crate::body::Body;
 use crate::body::Body::*;
+use crate::control::ControlEvent;
+//use crate::control::ControlEvent;
 use crate::simulate::*;
-use chrono::{TimeZone};
 use kiss3d::camera::Camera;
-use kiss3d::event::Action;
-use kiss3d::event::Key;
 use kiss3d::event::WindowEvent;
+use kiss3d::event::{Action, Key};
 use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Point2;
@@ -22,6 +22,7 @@ use kiss3d::{
     window::Window,
 };
 use std::path::Path;
+use std::time::Duration;
 use std::{cell::RefCell, rc::Rc};
 
 mod camera_mover;
@@ -51,7 +52,7 @@ impl Renderer {
             std::f32::consts::PI / 4.0,
             0.001,
             10240.0,
-            Point3::new(0.0, 0.0, 8.0),
+            Point3::new(0.0, 0.0, 5000.0),
             Point3::origin(),
         );
         camera.rebind_drag_button(Some(MouseButton::Button1));
@@ -101,14 +102,17 @@ impl Renderer {
             snapshot: snapshot,
         };
 
-        renderer.camera.set_at(renderer.render_position(Earth));
+        renderer.camera_mover.move_to_with_transition_time(
+            renderer.render_position(Earth),
+            8.0,
+            Duration::from_secs(1),
+        );
 
         renderer
     }
 
     // Returns false if the window should be closed.
     pub fn frame(&mut self, window: &mut Window) -> bool {
-        self.handle_events(window);
         self.camera_mover.maybe_move_camera(&mut self.camera);
 
         window.draw_text(
@@ -206,25 +210,18 @@ impl Renderer {
         }
     }
 
-    fn handle_events(&mut self, window: &mut Window) {
-        for mut event in window.events().iter() {
-            match event.value {
-                //WindowEvent::Scroll(xshift, yshift, modifiers) => {
-                //    // dont override the default mouse handler
-                //    event.value = WindowEvent::Scroll(xshift, -yshift * 0.3, modifiers);
-                //}
-                WindowEvent::Key(Key::Tab, Action::Press, _) => {
-                    self.tab_press_count += 1;
-                    match self.tab_press_count % 3 {
-                        0 => self.camera_mover.move_to(self.render_position(Earth), 8.0),
-                        1 => self.camera_mover.move_to(self.render_position(Moon), 2.0),
-                        2 => self.camera_mover.move_to(self.render_position(Sun), 50.0),
-                        _ => (),
-                    }
-                    event.inhibited = true;
+    pub fn handle_event(&mut self, event: ControlEvent) {
+        match event {
+            ControlEvent::CycleCamera => {
+                self.tab_press_count += 1;
+                match self.tab_press_count % 3 {
+                    0 => self.camera_mover.move_to(self.render_position(Earth), 8.0),
+                    1 => self.camera_mover.move_to(self.render_position(Moon), 2.0),
+                    2 => self.camera_mover.move_to(self.render_position(Sun), 50.0),
+                    _ => (),
                 }
-                _ => {}
             }
+            _ => {}
         }
     }
 }

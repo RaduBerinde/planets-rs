@@ -11,7 +11,6 @@ pub struct Snapshot {
     pub moon_velocity: Vector3<f64>,
 }
 
-// Library of snapshots (to use as initial conditions).
 const EARTH_APHELION: f64 = 152.10e6;
 
 impl Snapshot {
