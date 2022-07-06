@@ -1,3 +1,10 @@
+use std::{
+    ops::{Div, Mul},
+    time::Instant,
+};
+
+use crate::control::ControlEvent;
+
 use super::body::BodyProperties;
 use chrono::{DateTime, TimeZone, Utc};
 use kiss3d::nalgebra::{Point3, Vector3};
@@ -24,7 +31,7 @@ impl Snapshot {
         }
     }
 
-    pub fn advance(self: &Snapshot, new_timestamp: DateTime<Utc>) -> Snapshot {
+    pub fn advance_to(self: &Snapshot, new_timestamp: DateTime<Utc>) -> Snapshot {
         let mut s = *self;
         loop {
             s = step(&s, DEFAULT_STEP);
@@ -81,4 +88,61 @@ fn gacc(pos: &Point3<f64>, other_pos: &Point3<f64>, other_mass: f64) -> Vector3<
     let vec = other_pos - pos;
     let amount = G * other_mass / vec.norm_squared();
     return vec.normalize() * amount;
+}
+
+pub struct Simulation {
+    pub current: Snapshot,
+    // Simulated duration per elapsed second.
+    pub speed: chrono::Duration,
+    pub state: State,
+}
+
+pub struct StartInfo {
+    instant: Instant,
+    timestamp: DateTime<Utc>,
+}
+
+pub enum State {
+    Stopped,
+    Running(StartInfo),
+}
+
+impl Simulation {
+    fn start(&mut self) {
+        self.state = State::Running(StartInfo {
+            instant: Instant::now(),
+            timestamp: self.current.timestamp,
+        });
+    }
+
+    fn stop(&mut self) {
+        self.state = State::Stopped
+    }
+
+    fn toggle_start(&mut self) {
+        match &self.state {
+            State::Running(_) => self.stop(),
+            State::Stopped => self.start(),
+        }
+    }
+
+    fn advance(&mut self) {
+        match &self.state {
+            State::Running(start_info) => {
+                let new_timestamp = start_info.timestamp
+                    + chrono::Duration::from_std(start_info.instant.elapsed()).unwrap();
+                self.current = self.current.advance_to(new_timestamp);
+            }
+            _ => {}
+        }
+    }
+
+    pub fn handle_event(&mut self, ev: ControlEvent) {
+        match ev {
+            ControlEvent::StartStop => self.toggle_start(),
+            ControlEvent::Faster => self.speed = self.speed.mul(2),
+            ControlEvent::Slower => self.speed = self.speed.div(2),
+            _ => {}
+        }
+    }
 }
