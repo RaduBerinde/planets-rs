@@ -1,6 +1,6 @@
 use enum_iterator::{all, Sequence};
 use kiss3d::event::{Action, Event, Key, WindowEvent};
-use std::collections::HashMap;
+
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Sequence)]
 pub enum ControlEvent {

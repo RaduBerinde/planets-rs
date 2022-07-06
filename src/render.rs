@@ -6,8 +6,8 @@ use crate::control::ControlEvent;
 //use crate::control::ControlEvent;
 use crate::simulate::*;
 use kiss3d::camera::Camera;
-use kiss3d::event::WindowEvent;
-use kiss3d::event::{Action, Key};
+
+
 use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Point2;
