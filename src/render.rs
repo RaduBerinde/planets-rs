@@ -1,9 +1,9 @@
+use self::camera::*;
 use self::camera_mover::*;
 use self::material::*;
 use crate::body::Body;
 use crate::body::Body::*;
 use crate::control::ControlEvent;
-//use crate::control::ControlEvent;
 use crate::simulate::*;
 use kiss3d::camera::Camera;
 
@@ -24,12 +24,13 @@ use std::path::Path;
 use std::time::Duration;
 use std::{cell::RefCell, rc::Rc};
 
+mod camera;
 mod camera_mover;
 mod material;
 
 pub struct Renderer {
-    camera: ArcBall,
-    camera_mover: CameraMover,
+    camera: MyCamera,
+    //camera_mover: CameraMover,
     tab_press_count: u32,
 
     sun_node: SceneNode,
@@ -45,17 +46,18 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(snapshot: &Snapshot, window: &mut Window) -> Self {
-        let mut camera = ArcBall::new_with_frustrum(
-            std::f32::consts::PI / 4.0,
-            0.001,
-            10240.0,
-            Point3::new(0.0, 0.0, 5000.0),
-            Point3::origin(),
-        );
-        camera.rebind_drag_button(Some(MouseButton::Button1));
-        camera.rebind_rotate_button(Some(MouseButton::Button2));
-        camera.rebind_reset_key(None);
-        camera.set_dist_step(0.99);
+        //let mut camera = ArcBall::new_with_frustrum(
+        //    std::f32::consts::PI / 4.0,
+        //    0.001,
+        //    10240.0,
+        //    Point3::new(0.0, 0.0, 5000.0),
+        //    Point3::origin(),
+        //);
+        //camera.rebind_drag_button(Some(MouseButton::Button1));
+        //camera.rebind_rotate_button(Some(MouseButton::Button2));
+        //camera.rebind_reset_key(None);
+        //camera.set_dist_step(0.99);
+
         //camera.set_min_dist(1e-6);
         //camera.set_max_dist(1e+6);
 
@@ -87,9 +89,12 @@ impl Renderer {
         let (earth_node, earth_lighting) = init_body(Earth);
         let (moon_node, moon_lighting) = init_body(Moon);
 
-        let mut renderer = Renderer {
+        let camera = MyCamera::new();
+
+        //let mut renderer = Renderer {
+        Renderer {
             camera,
-            camera_mover: CameraMover::new(),
+            //camera_mover: CameraMover::new(),
             tab_press_count: 0,
             sun_node,
             earth_node,
@@ -97,15 +102,15 @@ impl Renderer {
             moon_node,
             moon_lighting,
             snapshot: *snapshot,
-        };
+        }
 
-        renderer.camera_mover.move_to_with_transition_time(
-            renderer.render_position(Earth),
-            8.0,
-            Duration::from_secs(1),
-        );
+        //renderer.camera_mover.move_to_with_transition_time(
+        //    renderer.render_position(Earth),
+        //    8.0,
+        //    Duration::from_secs(1),
+        //);
 
-        renderer
+        //renderer
     }
 
     pub fn set_snapshot(&mut self, snapshot: &Snapshot) {
@@ -114,7 +119,7 @@ impl Renderer {
 
     // Returns false if the window should be closed.
     pub fn frame(&mut self, window: &mut Window) -> bool {
-        self.camera_mover.maybe_move_camera(&mut self.camera);
+        //self.camera_mover.maybe_move_camera(&mut self.camera);
 
         window.draw_text(
             &self.snapshot.timestamp.to_string(),
@@ -155,7 +160,7 @@ impl Renderer {
         window.render_with_camera(&mut self.camera)
     }
 
-    fn render_body_hint(&self, camera: &ArcBall, window: &mut Window, body: Body) {
+    fn render_body_hint(&self, camera: &MyCamera, window: &mut Window, body: Body) {
         let body_pos = self.render_position(body);
 
         // Only show the hint if we see the object as very small.
@@ -214,13 +219,13 @@ impl Renderer {
     pub fn handle_event(&mut self, event: ControlEvent) {
         match event {
             ControlEvent::CycleCamera => {
-                self.tab_press_count += 1;
-                match self.tab_press_count % 3 {
-                    0 => self.camera_mover.move_to(self.render_position(Earth), 8.0),
-                    1 => self.camera_mover.move_to(self.render_position(Moon), 2.0),
-                    2 => self.camera_mover.move_to(self.render_position(Sun), 50.0),
-                    _ => (),
-                }
+                //self.tab_press_count += 1;
+                //match self.tab_press_count % 3 {
+                //    0 => self.camera_mover.move_to(self.render_position(Earth), 8.0),
+                //    1 => self.camera_mover.move_to(self.render_position(Moon), 2.0),
+                //    2 => self.camera_mover.move_to(self.render_position(Sun), 50.0),
+                //    _ => (),
+                //}
             }
             _ => {}
         }
