@@ -3,10 +3,10 @@ use std::{
     time::Instant,
 };
 
-use crate::control::ControlEvent;
+use crate::{choice::Choice, control::ControlEvent};
 
 use super::body::BodyProperties;
-use chrono::{DateTime, Duration, TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use kiss3d::nalgebra::{Point3, Vector3};
 
 #[derive(Copy, Clone)]
@@ -31,20 +31,24 @@ impl Snapshot {
         }
     }
 
-    pub fn advance_to(self: &Snapshot, new_timestamp: DateTime<Utc>) -> Snapshot {
+    fn advance_to(self: &Snapshot, new_timestamp: DateTime<Utc>, dt: Seconds) -> Snapshot {
+        assert!(dt.0 > 0.0);
         let mut s = *self;
-        loop {
-            s = step(&s, DEFAULT_STEP);
-            if s.timestamp >= new_timestamp {
-                return s;
-            }
+        while s.timestamp + dt.to_duration() <= new_timestamp {
+            s = step(&s, dt);
         }
+        s
     }
 }
 
-const DEFAULT_STEP: f64 = 60.0; // seconds
+const DEFAULT_STEP: Seconds = Seconds(60.0);
+const MIN_STEPS_PER_WALL_SECOND: f64 = 100.0;
+const MAX_STEPS_PER_WALL_SECOND: f64 = 100000.0;
 
-fn step(s: &Snapshot, dt: f64) -> Snapshot {
+fn step(s: &Snapshot, dt: Seconds) -> Snapshot {
+    let new_timestamp = s.timestamp + dt.to_duration();
+    let dt = dt.0;
+
     // We use velocity Verlet integration:
     //  x(t+dt) = x(t) + v(t)dt + a(t)dt^2/2
     //  v(t+dt) = v(t) + ((a(t) + a(t+dt))dt/2
@@ -59,7 +63,7 @@ fn step(s: &Snapshot, dt: f64) -> Snapshot {
     let new_moon_vel = s.moon_velocity + 0.5 * (moon_acc + new_moon_acc) * dt;
 
     Snapshot {
-        timestamp: s.timestamp + chrono::Duration::nanoseconds((dt * 1_000_000_000.0) as i64),
+        timestamp: new_timestamp,
         earth_position: new_earth_pos,
         earth_velocity: new_earth_vel,
         moon_position: new_moon_pos,
@@ -72,11 +76,6 @@ fn gacc_earth_and_moon(
     moon_position: &Point3<f64>,
 ) -> (Vector3<f64>, Vector3<f64>) {
     let sun_pos = Point3::<f64>::new(0.0, 0.0, 0.0);
-
-    //println!(
-    //    "sun-earth acc: {}",
-    //    gacc(earth_position, &sun_pos, BodyProperties::SUN.mass)
-    //);
 
     let earth_acc = gacc(earth_position, &sun_pos, BodyProperties::SUN.mass)
         + gacc(earth_position, moon_position, BodyProperties::MOON.mass);
@@ -101,7 +100,7 @@ fn gacc(pos: &Point3<f64>, other_pos: &Point3<f64>, other_mass: f64) -> Vector3<
 pub struct Simulation {
     pub current: Snapshot,
     // Simulated duration per elapsed second.
-    pub speed: chrono::Duration,
+    pub speed: Choice<chrono::Duration>,
     pub state: State,
 }
 
@@ -117,10 +116,20 @@ pub enum State {
 
 impl Simulation {
     pub fn new(start: Snapshot) -> Self {
+        let speeds = [
+            chrono::Duration::minutes(1),
+            chrono::Duration::minutes(15),
+            chrono::Duration::hours(1),
+            chrono::Duration::hours(4),
+            chrono::Duration::days(1),
+            chrono::Duration::days(5),
+            chrono::Duration::days(30),
+            chrono::Duration::days(90),
+        ];
+
         Simulation {
             current: start,
-            //speed: chrono::Duration::days(1),
-            speed: chrono::Duration::seconds(1),
+            speed: Choice::new_with_initial(speeds, 2),
             state: State::Stopped,
         }
     }
@@ -146,18 +155,23 @@ impl Simulation {
     pub fn advance(&mut self) {
         match &self.state {
             State::Running(start_info) => {
-                let elapsed_secs = start_info.instant.elapsed().as_secs_f64();
-                let new_timestamp = start_info.timestamp
-                    + chrono::Duration::seconds(
-                        (self.speed.num_seconds() as f64 * elapsed_secs) as i64,
-                    );
-                self.current = self.current.advance_to(new_timestamp);
+                let elapsed = Seconds::from(start_info.instant.elapsed());
+                assert!(elapsed.0 > 0.0);
+
+                let simulation_speed_per_sec = Seconds::from(self.speed.get());
+                let simulation_elapsed = elapsed * simulation_speed_per_sec.0;
+                let new_timestamp = start_info.timestamp + simulation_elapsed.to_duration();
+
+                let mut step = DEFAULT_STEP;
+                step = step.at_least(simulation_speed_per_sec / MAX_STEPS_PER_WALL_SECOND);
+                step = step.at_most(simulation_speed_per_sec / MIN_STEPS_PER_WALL_SECOND);
+                self.current = self.current.advance_to(new_timestamp, step);
             }
             _ => {}
         }
     }
 
-    pub fn adjust_speed(&mut self, new_speed: chrono::Duration) {
+    pub fn adjust_speed(&mut self, new_speed: Choice<chrono::Duration>) {
         match &self.state {
             State::Running(_) => {
                 // We need to stop and restart because advance assumes the
@@ -176,9 +190,51 @@ impl Simulation {
     pub fn handle_event(&mut self, ev: ControlEvent) {
         match ev {
             ControlEvent::StartStop => self.toggle_start(),
-            ControlEvent::Faster => self.adjust_speed(self.speed.mul(2)),
-            ControlEvent::Slower => self.adjust_speed(self.speed.div(2)),
+            ControlEvent::Faster => self.adjust_speed(self.speed.next()),
+            ControlEvent::Slower => self.adjust_speed(self.speed.prev()),
             _ => {}
         }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Seconds(f64);
+
+impl Seconds {
+    fn at_least(self, other: Self) -> Self {
+        return Seconds(self.0.max(other.0));
+    }
+    fn at_most(self, other: Self) -> Self {
+        return Seconds(self.0.min(other.0));
+    }
+
+    fn to_duration(self) -> chrono::Duration {
+        chrono::Duration::nanoseconds((self.0 * 1e9) as i64)
+    }
+}
+
+impl From<chrono::Duration> for Seconds {
+    fn from(duration: chrono::Duration) -> Self {
+        Seconds(duration.num_nanoseconds().unwrap() as f64 * 1e-9)
+    }
+}
+
+impl From<std::time::Duration> for Seconds {
+    fn from(duration: std::time::Duration) -> Self {
+        Seconds(duration.as_secs_f64())
+    }
+}
+
+impl Mul<f64> for Seconds {
+    type Output = Seconds;
+    fn mul(self, other: f64) -> Seconds {
+        Seconds(self.0 * other)
+    }
+}
+
+impl Div<f64> for Seconds {
+    type Output = Seconds;
+    fn div(self, other: f64) -> Seconds {
+        Seconds(self.0 / other)
     }
 }

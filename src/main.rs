@@ -4,6 +4,7 @@ use kiss3d::window::Window;
 use simulate::{Simulation, Snapshot};
 
 mod body;
+mod choice;
 mod control;
 mod render;
 mod simulate;
