@@ -4,20 +4,18 @@ use delegate::delegate;
 use kiss3d::{
     camera::{ArcBall, Camera},
     event::WindowEvent,
-    nalgebra::{Isometry3, Matrix4, Point3},
+    nalgebra::{Isometry3, Matrix4, Point3, Vector3},
     resource::ShaderUniform,
     window::Canvas,
 };
 
 pub struct MyCamera {
-    arcball: ArcBall,
+    pub arcball: ArcBall,
     transition: Option<TransitionState>,
+    dist_scale_next_frame: Option<f32>,
 }
 
 struct TransitionState {
-    start_time: Instant,
-    start_eye: Point3<f32>,
-    start_focus: Point3<f32>,
     target_time: Instant,
     target_eye: Point3<f32>,
     target_focus: Point3<f32>,
@@ -27,19 +25,27 @@ struct TransitionState {
 
 impl MyCamera {
     pub fn new() -> Self {
-        MyCamera {
-            arcball: ArcBall::new_with_frustrum(
-                std::f32::consts::PI / 4.0,
-                0.001,
-                10240.0,
-                Point3::new(0.0, 0.0, 3000.0),
-                Point3::origin(),
-            ),
+        let mut arcball = ArcBall::new_with_frustrum(
+            std::f32::consts::PI / 4.0,
+            0.001,
+            100_000.0,
+            Point3::new(0.0, 0.0, 3000.0),
+            Point3::origin(),
+        );
+        arcball.set_up_axis(Vector3::new(0.0, 0.01, 1.0));
+
+        Self {
+            arcball,
             transition: None,
+            dist_scale_next_frame: None,
         }
     }
 
     pub fn update_focus(&mut self, focus: Point3<f32>) {
+        if let Some(scale) = self.dist_scale_next_frame {
+            self.arcball.set_dist(self.arcball.dist() * scale);
+            self.dist_scale_next_frame = None;
+        }
         match self.transition.as_mut() {
             None => self.arcball.set_at(focus),
 
@@ -76,9 +82,6 @@ impl MyCamera {
     pub fn transition_to(&mut self, eye: Point3<f32>, focus: Point3<f32>) {
         let now = Instant::now();
         self.transition = Some(TransitionState {
-            start_time: now,
-            start_eye: self.arcball.eye(),
-            start_focus: self.arcball.at(),
             target_time: now + Self::TRANSITION_TIME,
             target_eye: eye,
             target_focus: focus,
@@ -89,8 +92,7 @@ impl MyCamera {
     const SCROLL_STEP: f32 = 0.99;
 
     pub fn handle_scroll(&mut self, off: f32) {
-        self.arcball
-            .set_dist(self.arcball.dist() * Self::SCROLL_STEP.powf(off));
+        self.dist_scale_next_frame = Some(Self::SCROLL_STEP.powf(off));
     }
 }
 

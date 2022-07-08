@@ -43,7 +43,7 @@ impl Snapshot {
 
 const DEFAULT_STEP: Seconds = Seconds(60.0);
 const MIN_STEPS_PER_WALL_SECOND: f64 = 100.0;
-const MAX_STEPS_PER_WALL_SECOND: f64 = 100000.0;
+const MAX_STEPS_PER_WALL_SECOND: f64 = 10000.0;
 
 fn step(s: &Snapshot, dt: Seconds) -> Snapshot {
     let new_timestamp = s.timestamp + dt.to_duration();

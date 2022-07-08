@@ -1,5 +1,5 @@
 use self::camera::*;
-use self::camera_mover::*;
+use self::grid::Grid;
 use self::material::*;
 use crate::body::Body;
 use crate::body::Body::*;
@@ -8,12 +8,14 @@ use crate::control::ControlEvent;
 use crate::simulate::*;
 use kiss3d::camera::Camera;
 
+use kiss3d::event::{Event, WindowEvent};
 use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Point2;
 use kiss3d::nalgebra::Vector2;
 use kiss3d::nalgebra::Vector3;
 use kiss3d::text::Font;
+use kiss3d::window::Canvas;
 use kiss3d::{
     camera::ArcBall,
     event::MouseButton,
@@ -27,12 +29,14 @@ use std::time::Duration;
 use std::{cell::RefCell, rc::Rc};
 
 mod camera;
-mod camera_mover;
+mod grid;
 mod material;
 
 pub struct Renderer {
     camera: MyCamera,
     camera_focus: Choice<Body>,
+
+    grid: Grid,
 
     sun_node: SceneNode,
 
@@ -95,6 +99,7 @@ impl Renderer {
         let mut renderer = Renderer {
             camera,
             camera_focus: Choice::new([Earth, Moon, Sun]),
+            grid: Grid::new(to_render_scale(1.6e+6), 20),
             sun_node,
             earth_node,
             earth_lighting,
@@ -104,12 +109,6 @@ impl Renderer {
         };
 
         renderer.transition_camera(renderer.camera_focus.get());
-
-        //renderer.camera_mover.move_to_with_transition_time(
-        //    renderer.render_position(Earth),
-        //    8.0,
-        //    Duration::from_secs(1),
-        //);
 
         renderer
     }
@@ -122,7 +121,12 @@ impl Renderer {
     pub fn frame(&mut self, window: &mut Window) -> bool {
         self.camera
             .update_focus(self.render_position(self.camera_focus.get()));
-        //self.camera_mover.maybe_move_camera(&mut self.camera);
+
+        self.grid.render(
+            window,
+            self.camera.arcball.at(),
+            self.camera.arcball.dist() / 100.0,
+        );
 
         window.draw_text(
             &self.snapshot.timestamp.to_string(),
@@ -235,6 +239,16 @@ impl Renderer {
             ControlEvent::CycleCamera => {
                 self.camera_focus = self.camera_focus.circular_next();
                 self.transition_camera(self.camera_focus.get());
+            }
+            _ => {}
+        }
+    }
+
+    pub fn maybe_handle_camera_event(&mut self, canvas: &Canvas, event: &mut Event) {
+        match event.value {
+            WindowEvent::Scroll(_, _, _) => {
+                self.camera.handle_event(canvas, &event.value);
+                event.inhibited = true
             }
             _ => {}
         }
