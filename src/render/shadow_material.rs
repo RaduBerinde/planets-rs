@@ -4,7 +4,7 @@ use std::rc::Rc;
 use kiss3d::camera::Camera;
 use kiss3d::context::Context;
 use kiss3d::light::Light;
-use kiss3d::nalgebra::{Isometry3, Matrix3, Matrix4, Point2, Point3, Vector3};
+use kiss3d::nalgebra::{Isometry3, Matrix3, Matrix4, Point2, Point3, Vector3, Vector4};
 use kiss3d::resource::Material;
 use kiss3d::resource::{Effect, Mesh, ShaderAttribute, ShaderUniform};
 use kiss3d::scene::ObjectData;
@@ -18,7 +18,6 @@ pub struct ShadowMaterial {
     tex_coord: ShaderAttribute<Point2<f32>>,
     color: ShaderUniform<Point3<f32>>,
     transform: ShaderUniform<Matrix4<f32>>,
-    scale: ShaderUniform<Matrix3<f32>>,
     ntransform: ShaderUniform<Matrix3<f32>>,
     proj: ShaderUniform<Matrix4<f32>>,
     view: ShaderUniform<Matrix4<f32>>,
@@ -52,7 +51,6 @@ impl ShadowMaterial {
             tex_coord: effect.get_attrib("tex_coord").unwrap(),
             color: effect.get_uniform("color").unwrap(),
             transform: effect.get_uniform("transform").unwrap(),
-            scale: effect.get_uniform("scale").unwrap(),
             ntransform: effect.get_uniform("ntransform").unwrap(),
             view: effect.get_uniform("view").unwrap(),
             proj: effect.get_uniform("proj").unwrap(),
@@ -104,13 +102,12 @@ impl Material for ShadowMaterial {
          * Setup object-related stuffs.
          *
          */
-        let formated_transform = transform.to_homogeneous();
+        let formated_transform = transform.to_homogeneous()
+            * Matrix4::from_diagonal(&Vector4::new(scale.x, scale.y, scale.z, 1.0));
         let formated_ntransform = transform.rotation.to_rotation_matrix().into_inner();
-        let formated_scale = Matrix3::from_diagonal(&Vector3::new(scale.x, scale.y, scale.z));
 
         self.transform.upload(&formated_transform);
         self.ntransform.upload(&formated_ntransform);
-        self.scale.upload(&formated_scale);
 
         mesh.bind(&mut self.pos, &mut self.normal, &mut self.tex_coord);
 
