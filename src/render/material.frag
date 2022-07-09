@@ -19,31 +19,31 @@ uniform float occluder_radius;
 
 const float pi = 3.141592653589793238;
 
-// To create softer shadows, full shadow is only when a ray intersects an occluder that this much smaller.
-const float full_shadow_radius_fraction = 0.95;
-const float full_shadow_radius_fraction_sq = full_shadow_radius_fraction * full_shadow_radius_fraction;
-
-float point_source_shadow(vec3 light_vec, vec3 occluder_vec, float occluder_radius) {
-    // We want to determine the point on the segment that is closest to the
-    // sphere center. Project the center point onto the line and normalize
-    // distance from start to [0, 1].
-    float t = clamp(dot(occluder_vec, light_vec) / dot(light_vec, light_vec), 0.0, 1.0);
-
-    vec3 closest_point = light_vec * t;
-    vec3 to_center = occluder_vec - closest_point;
-    
-    float sqdist = dot(to_center, to_center);
-    float sqradius = occluder_radius * occluder_radius;
-    
-    // sqdist <= sqradius * sqfraction     => 0.0
-    // sqdist >= sqradis                   => 1.0
-    // 
-    // blended = (sqdist - sqradius*sqfraction) / (sqradius - sqradius * sqfraction)
-    //         = (sqdist - sqradius*sqfraction) / (sqradius * (1 - sqfraction))
-    //         = (sqdist/sradius - sqfraction) / (1 - sqfraction)
-    
-    return clamp((sqdist/sqradius - full_shadow_radius_fraction_sq) / (1.0 - full_shadow_radius_fraction_sq), 0.0, 1.0);
-}
+//// To create softer shadows, full shadow is only when a ray intersects an occluder that this much smaller.
+//const float full_shadow_radius_fraction = 0.95;
+//const float full_shadow_radius_fraction_sq = full_shadow_radius_fraction * full_shadow_radius_fraction;
+//
+//float point_source_shadow(vec3 light_vec, vec3 occluder_vec, float occluder_radius) {
+//    // We want to determine the point on the segment that is closest to the
+//    // sphere center. Project the center point onto the line and normalize
+//    // distance from start to [0, 1].
+//    float t = clamp(dot(occluder_vec, light_vec) / dot(light_vec, light_vec), 0.0, 1.0);
+//
+//    vec3 closest_point = light_vec * t;
+//    vec3 to_center = occluder_vec - closest_point;
+//    
+//    float sqdist = dot(to_center, to_center);
+//    float sqradius = occluder_radius * occluder_radius;
+//    
+//    // sqdist <= sqradius * sqfraction     => 0.0
+//    // sqdist >= sqradis                   => 1.0
+//    // 
+//    // blended = (sqdist - sqradius*sqfraction) / (sqradius - sqradius * sqfraction)
+//    //         = (sqdist - sqradius*sqfraction) / (sqradius * (1 - sqfraction))
+//    //         = (sqdist/sradius - sqfraction) / (1 - sqfraction)
+//    
+//    return clamp((sqdist/sqradius - full_shadow_radius_fraction_sq) / (1.0 - full_shadow_radius_fraction_sq), 0.0, 1.0);
+//}
 
 // circle_circle_intersection returns the area of the intersection
 // between the unit circle and a circle of radius r with the center
@@ -54,11 +54,9 @@ float circle_circle_intersection(float r, float d) {
       return 0.0;
    }
    if (d < eps || d+r < 1.0+eps || d+1.0 < r+eps) {
-      return pi * min(r,1.0)*min(r,1.0);
+      return pi * min(r, 1.0)*min(r, 1.0);
    }
-
-   float result = r*r*acos((d*d+r*r-1.0) / (2.0*d*r)) + acos((d*d+1.0-r*r) / (2.0*d)) - 0.5*sqrt((-d+r+1.0)*(d+r-1.0)*(d-r+1.0)*(d+r+1.0));
-   return max(result, 0.0);
+   return r*r*acos((d*d+r*r-1.0) / (2.0*d*r)) + acos((d*d+1.0-r*r) / (2.0*d)) - 0.5*sqrt((-d+r+1.0)*(d+r-1.0)*(d-r+1.0)*(d+r+1.0));
 }
 
 float spherical_source_shadow(vec3 light_vec, float light_vec_len, float light_radius, vec3 occluder_vec, float occluder_radius) {
@@ -98,9 +96,10 @@ float spherical_source_shadow(vec3 light_vec, float light_vec_len, float light_r
    // approximation for our purpose (our light cone angles are small).
    
    vec3 occluder_vec_dir = occluder_vec / occluder_vec_len;
+   vec3 light_vec_dir = light_vec / light_vec_len;
 
-   float cos_theta = dot(occluder_vec_dir, light_vec) / light_vec_len;
-   float sin_theta = sqrt(1.0 - cos_theta*cos_theta);
+   float cos_theta = dot(occluder_vec_dir, light_vec_dir);
+   float sin_theta = length(cross(occluder_vec_dir, light_vec_dir));
    float projected_distance = light_vec_len / cos_theta;
    float projected_distance_to_light = projected_distance * sin_theta;
    float projected_radius = occluder_radius / occluder_vec_len * projected_distance;
@@ -114,16 +113,9 @@ float spherical_source_shadow(vec3 light_vec, float light_vec_len, float light_r
    //   // visible area.
    //   return 1.0 - projected_radius*projected_radius / (light_radius*light_radius);
    //}
-   return 1.0 - circle_circle_intersection(projected_radius / light_radius, projected_distance_to_light / light_radius) / pi;
+   float area = circle_circle_intersection(projected_radius / light_radius, projected_distance_to_light / light_radius);
+   return 1.0 - clamp(area/pi, 0.0, 1.0);
 
-   //float R = light_radius;
-   //float r = projected_radius;
-   //float d = projected_distance_to_light;
-   ////float intersection = r*r*acos((d*d+r*r-R*R) / (2.0*d*r)) + R*R*acos((d*d+R*R-r*r) / (2.0*d*R));
-   //float intersection = r*r*acos((d*d+r*r-R*R) / (2.0*d*r)) + R*R*acos((d*d+R*R-r*r) / (2.0*d*R)) - 0.5*sqrt((-d+r+R)*(d+r-R)*(d-r+R)*(d+r+R));
-   //return clamp(1.0 - intersection / (pi * (light_radius*light_radius)), 0.0, 1.0);
-
-   
    //vec3 axis1 = normalize(cross(light_vec, vec3(0.0, 0.0, 1.0)));
    //vec3 axis2 = normalize(cross(light_vec, axis1));
    //
