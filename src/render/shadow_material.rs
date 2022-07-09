@@ -27,6 +27,7 @@ pub struct ShadowMaterial {
     occluder_radius: ShaderUniform<f32>,
 }
 
+// BodyLightingData is used for the object's generic data.
 #[derive(Default)]
 pub struct BodyLightingData {
     pub light_pos: Point3<f32>,
@@ -37,7 +38,6 @@ pub struct BodyLightingData {
 }
 
 impl ShadowMaterial {
-    /// Creates a new `MyMaterial`.
     pub fn new() -> ShadowMaterial {
         // load the effect
         let mut effect = Effect::new_from_str(OBJECT_VERTEX_SRC, OBJECT_FRAGMENT_SRC);

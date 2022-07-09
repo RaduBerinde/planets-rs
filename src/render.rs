@@ -26,6 +26,7 @@ use std::{cell::RefCell, rc::Rc};
 
 mod camera;
 mod grid;
+mod lines_material;
 mod shadow_material;
 
 pub struct Renderer {
@@ -68,7 +69,7 @@ impl Renderer {
         sun_node.set_color(1.5, 1.5, 1.5);
         sun_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
 
-        let mat = Rc::new(RefCell::new(
+        let body_mat = Rc::new(RefCell::new(
             Box::new(ShadowMaterial::new()) as Box<dyn Material + 'static>
         ));
 
@@ -77,7 +78,7 @@ impl Renderer {
 
             let color = body.props().color;
             node.set_color(color.0, color.1, color.2);
-            node.set_material(Rc::clone(&mat));
+            node.set_material(Rc::clone(&body_mat));
             let lighting = Rc::new(RefCell::new(BodyLightingData::default()));
 
             node.data_mut()
