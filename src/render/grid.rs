@@ -1,7 +1,5 @@
 use kiss3d::{
-    camera::Camera,
     nalgebra::{Point3, Vector3},
-    renderer::{LineRenderer, Renderer},
     window::Window,
 };
 

@@ -9,8 +9,9 @@ use kiss3d::resource::Material;
 use kiss3d::resource::{Effect, Mesh, ShaderAttribute, ShaderUniform};
 use kiss3d::scene::ObjectData;
 
-/// The default material used to draw objects.
-pub struct MyMaterial {
+/// Material used to render a body. It calculates the shadow (eclipse) caused
+/// by another body.
+pub struct ShadowMaterial {
     effect: Effect,
     pos: ShaderAttribute<Point3<f32>>,
     normal: ShaderAttribute<Vector3<f32>>,
@@ -36,16 +37,16 @@ pub struct BodyLightingData {
     pub occluder_radius: f32,
 }
 
-impl MyMaterial {
+impl ShadowMaterial {
     /// Creates a new `MyMaterial`.
-    pub fn new() -> MyMaterial {
+    pub fn new() -> ShadowMaterial {
         // load the effect
         let mut effect = Effect::new_from_str(OBJECT_VERTEX_SRC, OBJECT_FRAGMENT_SRC);
 
         effect.use_program();
 
         // get the variables locations
-        MyMaterial {
+        ShadowMaterial {
             pos: effect.get_attrib("position").unwrap(),
             normal: effect.get_attrib("normal").unwrap(),
             tex_coord: effect.get_attrib("tex_coord").unwrap(),
@@ -77,7 +78,7 @@ impl MyMaterial {
     }
 }
 
-impl Material for MyMaterial {
+impl Material for ShadowMaterial {
     fn render(
         &mut self,
         pass: usize,
@@ -142,6 +143,6 @@ impl Material for MyMaterial {
     }
 }
 
-const OBJECT_VERTEX_SRC: &str = include_str!("material.vert");
+const OBJECT_VERTEX_SRC: &str = include_str!("shadow_material.vert");
 
-const OBJECT_FRAGMENT_SRC: &str = include_str!("material.frag");
+const OBJECT_FRAGMENT_SRC: &str = include_str!("shadow_material.frag");

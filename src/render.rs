@@ -1,6 +1,6 @@
 use self::camera::*;
 use self::grid::Grid;
-use self::material::*;
+use self::shadow_material::*;
 use crate::body::Body;
 use crate::body::Body::*;
 use crate::choice::Choice;
@@ -8,29 +8,25 @@ use crate::control::ControlEvent;
 use crate::simulate::*;
 use kiss3d::camera::Camera;
 
-use kiss3d::event::{Event, WindowEvent};
 use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Point2;
 use kiss3d::nalgebra::Vector2;
 use kiss3d::nalgebra::Vector3;
 use kiss3d::text::Font;
-use kiss3d::window::Canvas;
 use kiss3d::{
-    camera::ArcBall,
-    event::MouseButton,
     nalgebra::{Point3, Translation3},
     resource::Material,
     scene::SceneNode,
     window::Window,
 };
 use std::path::Path;
-use std::time::Duration;
+
 use std::{cell::RefCell, rc::Rc};
 
 mod camera;
 mod grid;
-mod material;
+mod shadow_material;
 
 pub struct Renderer {
     camera: MyCamera,
@@ -73,7 +69,7 @@ impl Renderer {
         sun_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
 
         let mat = Rc::new(RefCell::new(
-            Box::new(MyMaterial::new()) as Box<dyn Material + 'static>
+            Box::new(ShadowMaterial::new()) as Box<dyn Material + 'static>
         ));
 
         let mut init_body = |body: Body| -> (SceneNode, Rc<RefCell<BodyLightingData>>) {
@@ -239,16 +235,6 @@ impl Renderer {
             ControlEvent::CycleCamera => {
                 self.camera_focus = self.camera_focus.circular_next();
                 self.transition_camera(self.camera_focus.get());
-            }
-            _ => {}
-        }
-    }
-
-    pub fn maybe_handle_camera_event(&mut self, canvas: &Canvas, event: &mut Event) {
-        match event.value {
-            WindowEvent::Scroll(_, _, _) => {
-                self.camera.handle_event(canvas, &event.value);
-                event.inhibited = true
             }
             _ => {}
         }
