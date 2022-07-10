@@ -152,5 +152,5 @@ void main() {
   }
 
   vec4 tex_color = texture2D(tex, frag_tex_coord);
-  gl_FragColor = tex_color * vec4(color * (0.2 + lambertian), 1.0);
+  gl_FragColor = tex_color * vec4(color * (0.1 + lambertian), 1.0);
 }

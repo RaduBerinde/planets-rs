@@ -27,7 +27,7 @@ pub struct ShadowMaterial {
     occluder_radius: ShaderUniform<f32>,
 }
 
-// BodyLightingData is used for the object's generic data.
+// BodyLightingData is used for the object's generic data (inside a Rc RefCell).
 #[derive(Default)]
 pub struct BodyLightingData {
     pub light_pos: Point3<f32>,

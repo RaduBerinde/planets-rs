@@ -4,7 +4,7 @@ use std::rc::Rc;
 use kiss3d::camera::Camera;
 use kiss3d::context::Context;
 use kiss3d::light::Light;
-use kiss3d::nalgebra::{Isometry3, Matrix3, Matrix4, Point2, Point3, Point4, Vector3};
+use kiss3d::nalgebra::{Isometry3, Matrix4, Point2, Point3, Point4, Vector3, Vector4};
 use kiss3d::resource::{AllocationType, BufferType, Effect, Mesh, ShaderAttribute, ShaderUniform};
 use kiss3d::resource::{GPUVec, Material};
 use kiss3d::scene::ObjectData;
@@ -16,13 +16,14 @@ pub struct LinesMaterial {
     transform: ShaderUniform<Matrix4<f32>>,
     view: ShaderUniform<Matrix4<f32>>,
     proj: ShaderUniform<Matrix4<f32>>,
+    lines_width: f32,
 }
 
-// LinesData is used as for object's generic data.
+// LinesData is used as for object's generic data (inside a Rc RefCell).
 pub struct LinesData {
-    coords: Rc<RefCell<GPUVec<Point3<f32>>>>,
-    colors: Rc<RefCell<GPUVec<Point4<f32>>>>,
-    edges: Rc<RefCell<GPUVec<Point2<u16>>>>,
+    coords: GPUVec<Point3<f32>>,
+    colors: GPUVec<Point4<f32>>,
+    edges: GPUVec<Point2<u16>>,
 }
 
 impl LinesData {
@@ -33,34 +34,26 @@ impl LinesData {
     ) -> Self {
         let location = AllocationType::StaticDraw;
         LinesData {
-            coords: Rc::new(RefCell::new(GPUVec::new(
-                coords,
-                BufferType::Array,
-                location,
-            ))),
-            colors: Rc::new(RefCell::new(GPUVec::new(
-                colors,
-                BufferType::Array,
-                location,
-            ))),
-            edges: Rc::new(RefCell::new(GPUVec::new(
-                edges,
-                BufferType::ElementArray,
-                location,
-            ))),
+            coords: GPUVec::new(coords, BufferType::Array, location),
+            colors: GPUVec::new(colors, BufferType::Array, location),
+            edges: GPUVec::new(edges, BufferType::ElementArray, location),
         }
     }
 
-    pub fn bind_coords(&self, coords: &mut ShaderAttribute<Point3<f32>>) {
-        coords.bind(&mut *self.coords.borrow_mut());
+    pub fn bind(
+        &mut self,
+        coords: &mut ShaderAttribute<Point3<f32>>,
+        colors: &mut ShaderAttribute<Point4<f32>>,
+    ) {
+        coords.bind(&mut self.coords);
+        colors.bind(&mut self.colors);
+        self.edges.bind();
     }
 
-    pub fn bind_colors(&self, colors: &mut ShaderAttribute<Point4<f32>>) {
-        colors.bind(&mut *self.colors.borrow_mut());
-    }
-
-    pub fn bind_edges(&self) {
-        self.edges.borrow_mut().bind();
+    pub fn unbind(&mut self) {
+        self.coords.unbind();
+        self.colors.unbind();
+        self.edges.unbind();
     }
 }
 
@@ -78,6 +71,7 @@ impl LinesMaterial {
             view: effect.get_uniform("view").unwrap(),
             proj: effect.get_uniform("proj").unwrap(),
             effect,
+            lines_width: 1.0,
         }
     }
 
@@ -90,6 +84,68 @@ impl LinesMaterial {
     fn deactivate(&mut self) {
         self.pos.disable();
         self.color.disable();
+    }
+}
+
+impl Material for LinesMaterial {
+    fn render(
+        &mut self,
+        pass: usize,
+        transform: &Isometry3<f32>,
+        scale: &Vector3<f32>,
+        camera: &mut dyn Camera,
+        _: &Light,
+        data: &ObjectData,
+        _mesh: &mut Mesh,
+    ) {
+        let ctxt = Context::get();
+        self.activate();
+
+        /*
+         *
+         * Setup camera.
+         *
+         */
+        camera.upload(pass, &mut self.proj, &mut self.view);
+
+        /*
+         *
+         * Setup object-related stuffs.
+         *
+         */
+        let formated_transform = transform.to_homogeneous()
+            * Matrix4::from_diagonal(&Vector4::new(scale.x, scale.y, scale.z, 1.0));
+
+        self.transform.upload(&formated_transform);
+
+        let mut data = data
+            .user_data()
+            .downcast_ref::<Rc<RefCell<LinesData>>>()
+            .unwrap()
+            .borrow_mut();
+
+        data.bind(&mut self.pos, &mut self.color);
+
+        ctxt.enable(Context::BLEND);
+        ctxt.blend_func_separate(
+            Context::SRC_ALPHA,
+            Context::ONE_MINUS_SRC_ALPHA,
+            Context::ONE,
+            Context::ONE_MINUS_SRC_ALPHA,
+        );
+        ctxt.line_width(self.lines_width);
+        ctxt.draw_elements(
+            Context::LINES,
+            data.edges.len() as i32 * 2,
+            Context::UNSIGNED_SHORT,
+            0,
+        );
+        ctxt.line_width(1.0);
+        ctxt.disable(Context::BLEND);
+
+        data.unbind();
+
+        self.deactivate();
     }
 }
 
@@ -113,7 +169,7 @@ const LINES_FRAGMENT_SRC: &str = "#version 100
    precision mediump float;
 #endif
 
-    varying vec3 frag_color;
+    varying vec4 frag_color;
     void main() {
         gl_FragColor = frag_color;
     }";

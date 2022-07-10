@@ -96,7 +96,7 @@ impl Renderer {
         let mut renderer = Renderer {
             camera,
             camera_focus: Choice::new([Earth, Moon, Sun]),
-            grid: Grid::new(to_render_scale(1.6e+6), 20),
+            grid: Grid::new(window, 20),
             sun_node,
             earth_node,
             earth_lighting,
@@ -119,10 +119,9 @@ impl Renderer {
         self.camera
             .update_focus(self.render_position(self.camera_focus.get()));
 
-        self.grid.render(
-            window,
+        self.grid.update(
             self.camera.arcball.at(),
-            self.camera.arcball.dist() / 100.0,
+            to_render_scale(2e5) * self.camera.arcball.dist(),
         );
 
         window.draw_text(
