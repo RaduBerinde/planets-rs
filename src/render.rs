@@ -96,15 +96,6 @@ impl Renderer {
             .get_object_mut()
             .set_user_data(Box::new(Rc::clone(&earth_lighting)));
 
-        earth_node.set_local_rotation(UnitQuaternion::from_axis_angle(
-            &Vector3::x_axis(),
-            -std::f32::consts::FRAC_PI_2,
-        ));
-        //earth_node.append_rotation(&UnitQuaternion::from_axis_angle(
-        //    &Vector3::z_axis(),
-        //    std::f32::consts::PI,
-        //));
-
         // Init the Moon. The moon also uses our custom shadow material.
         let mut moon_node = window.add_sphere(render_radius(Moon));
         moon_node.set_material(Rc::clone(&body_mat));
@@ -160,6 +151,18 @@ impl Renderer {
             &Point3::new(0.8, 0.8, 0.8),
         );
 
+        self.earth_node.set_local_transformation(nalgebra::one());
+        self.earth_node
+            .set_local_rotation(UnitQuaternion::from_axis_angle(
+                &Vector3::x_axis(),
+                -std::f32::consts::FRAC_PI_2,
+            ));
+        self.earth_node
+            .append_rotation(&UnitQuaternion::from_axis_angle(
+                &Vector3::z_axis(),
+                self.snapshot.earth_rotation_angle() as f32,
+            ));
+
         for body in [Sun, Earth, Moon] {
             let pos = self.render_position(body);
             let translation = Translation3::new(pos.x, pos.y, pos.z);
@@ -171,6 +174,7 @@ impl Renderer {
             node.set_local_translation(translation);
             self.render_body_hint(&self.camera, window, body);
         }
+
         {
             let mut earth_lighting = self.earth_lighting.borrow_mut();
 
