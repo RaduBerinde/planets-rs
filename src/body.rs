@@ -1,3 +1,5 @@
+use kiss3d::nalgebra::Point3;
+
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Body {
     Sun,
@@ -42,4 +44,8 @@ impl BodyProperties {
         radius: 1737.5,
         color: (0.7, 0.7, 0.7),
     };
+
+    pub fn color_vec(&self) -> Point3<f32> {
+        Point3::new(self.color.0, self.color.1, self.color.2)
+    }
 }

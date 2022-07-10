@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -5,8 +6,8 @@ use kiss3d::camera::Camera;
 use kiss3d::context::Context;
 use kiss3d::light::Light;
 use kiss3d::nalgebra::{Isometry3, Matrix3, Matrix4, Point2, Point3, Vector3, Vector4};
-use kiss3d::resource::Material;
 use kiss3d::resource::{Effect, Mesh, ShaderAttribute, ShaderUniform};
+use kiss3d::resource::{Material, Texture};
 use kiss3d::scene::ObjectData;
 
 /// Material used to render a body. It calculates the shadow (eclipse) caused
@@ -16,7 +17,10 @@ pub struct ShadowMaterial {
     pos: ShaderAttribute<Point3<f32>>,
     normal: ShaderAttribute<Vector3<f32>>,
     tex_coord: ShaderAttribute<Point2<f32>>,
-    color: ShaderUniform<Point3<f32>>,
+    day_color: ShaderUniform<Point3<f32>>,
+    night_color: ShaderUniform<Point3<f32>>,
+    day_tex: ShaderUniform<i32>,
+    night_tex: ShaderUniform<i32>,
     transform: ShaderUniform<Matrix4<f32>>,
     ntransform: ShaderUniform<Matrix3<f32>>,
     proj: ShaderUniform<Matrix4<f32>>,
@@ -30,6 +34,12 @@ pub struct ShadowMaterial {
 // BodyLightingData is used for the object's generic data (inside a Rc RefCell).
 #[derive(Default)]
 pub struct BodyLightingData {
+    pub day_texture: Option<Rc<Texture>>,
+    pub day_color: Point3<f32>,
+
+    pub night_texture: Option<Rc<Texture>>,
+    pub night_color: Point3<f32>,
+
     pub light_pos: Point3<f32>,
     pub light_radius: f32,
 
@@ -49,7 +59,10 @@ impl ShadowMaterial {
             pos: effect.get_attrib("position").unwrap(),
             normal: effect.get_attrib("normal").unwrap(),
             tex_coord: effect.get_attrib("tex_coord").unwrap(),
-            color: effect.get_uniform("color").unwrap(),
+            day_color: effect.get_uniform("day_color").unwrap(),
+            night_color: effect.get_uniform("night_color").unwrap(),
+            day_tex: effect.get_uniform("day_tex").unwrap(),
+            night_tex: effect.get_uniform("night_tex").unwrap(),
             transform: effect.get_uniform("transform").unwrap(),
             ntransform: effect.get_uniform("ntransform").unwrap(),
             view: effect.get_uniform("view").unwrap(),
@@ -111,16 +124,29 @@ impl Material for ShadowMaterial {
 
         mesh.bind(&mut self.pos, &mut self.normal, &mut self.tex_coord);
 
-        ctxt.active_texture(Context::TEXTURE0);
-        ctxt.bind_texture(Context::TEXTURE_2D, Some(&*data.texture()));
-
-        self.color.upload(data.color());
-
-        let lighting = data
+        let lighting_rc = data
             .user_data()
             .downcast_ref::<Rc<RefCell<BodyLightingData>>>()
-            .unwrap()
-            .borrow();
+            .unwrap();
+        let lighting = (**lighting_rc).borrow();
+
+        ctxt.active_texture(Context::TEXTURE0);
+        ctxt.bind_texture(
+            Context::TEXTURE_2D,
+            lighting.day_texture.as_ref().map(Rc::borrow).as_deref(),
+        );
+        ctxt.active_texture(Context::TEXTURE1);
+        ctxt.bind_texture(
+            Context::TEXTURE_2D,
+            lighting.night_texture.as_ref().map(Rc::borrow).as_deref(),
+        );
+
+        self.day_color.upload(&lighting.day_color);
+        self.night_color.upload(&lighting.night_color);
+        // Associate day_tex with TEXTURE0 and night_tex with TEXTURE1.
+        self.day_tex.upload(&0);
+        self.night_tex.upload(&1);
+
         self.light_pos.upload(&lighting.light_pos);
         self.light_radius.upload(&lighting.light_radius);
         self.occluder_pos.upload(&lighting.occluder_pos);

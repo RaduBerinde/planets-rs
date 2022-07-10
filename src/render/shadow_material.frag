@@ -9,8 +9,10 @@ varying vec3 frag_pos;
 varying vec3 frag_normal;
 varying vec2 frag_tex_coord;
 
-uniform vec3 color;
-uniform sampler2D tex;
+uniform vec3 day_color;
+uniform vec3 night_color;
+uniform sampler2D day_tex;
+uniform sampler2D night_tex;
 
 uniform vec3 light_pos;
 uniform float light_radius;
@@ -150,7 +152,12 @@ void main() {
      //lambertian *= point_source_shadow(light_vec, occluder_pos - frag_pos, occluder_radius);
      lambertian *= spherical_source_shadow(light_vec, light_vec_len, light_radius, occluder_pos - frag_pos, occluder_radius);
   }
+ 
+  vec4 day = texture2D(day_tex, frag_tex_coord) * vec4(day_color, 1.0);
+  vec4 night = texture2D(night_tex, frag_tex_coord) * vec4(night_color, 1.0);
+  // We only start to blend in the night texture when luminosity is below 0.5.
+  gl_FragColor = day * lambertian + night * max(0.5 - lambertian, 0.0);
 
-  vec4 tex_color = texture2D(tex, frag_tex_coord);
-  gl_FragColor = tex_color * vec4(color * (0.1 + lambertian), 1.0);
+  //vec4 tex_color = texture2D(tex, frag_tex_coord);
+  //gl_FragColor = tex_color * vec4(color * (0.1 + lambertian), 1.0);
 }

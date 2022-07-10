@@ -11,8 +11,10 @@ use kiss3d::camera::Camera;
 use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Point2;
+use kiss3d::nalgebra::UnitQuaternion;
 use kiss3d::nalgebra::Vector2;
 use kiss3d::nalgebra::Vector3;
+use kiss3d::resource::TextureManager;
 use kiss3d::text::Font;
 use kiss3d::{
     nalgebra::{Point3, Translation3},
@@ -65,6 +67,7 @@ impl Renderer {
 
         window.set_light(Light::StickToCamera);
 
+        // Init the Sun. The sun uses the default material.
         let mut sun_node = window.add_sphere(render_radius(Sun));
         sun_node.set_color(1.5, 1.5, 1.5);
         sun_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
@@ -73,23 +76,50 @@ impl Renderer {
             Box::new(ShadowMaterial::new()) as Box<dyn Material + 'static>
         ));
 
-        let mut init_body = |body: Body| -> (SceneNode, Rc<RefCell<BodyLightingData>>) {
-            let mut node = window.add_sphere(render_radius(body));
+        // Init the Earth. The earth uses our custom shadow material.
+        let mut earth_node = window.add_sphere(render_radius(Earth));
+        earth_node.set_material(Rc::clone(&body_mat));
 
-            let color = body.props().color;
-            node.set_color(color.0, color.1, color.2);
-            node.set_material(Rc::clone(&body_mat));
-            let lighting = Rc::new(RefCell::new(BodyLightingData::default()));
+        let earth_lighting = Rc::new(RefCell::new(BodyLightingData {
+            day_color: Point3::new(1.2, 1.2, 1.2),
+            day_texture: Some(TextureManager::get_global_manager(|tm| {
+                tm.add(Path::new("./media/2k_earth_daymap.jpg"), "earth-day")
+            })),
+            night_color: Point3::new(0.9, 0.9, 0.9),
+            night_texture: Some(TextureManager::get_global_manager(|tm| {
+                tm.add(Path::new("./media/2k_earth_nightmap.jpg"), "earth-night")
+            })),
+            ..BodyLightingData::default()
+        }));
+        earth_node
+            .data_mut()
+            .get_object_mut()
+            .set_user_data(Box::new(Rc::clone(&earth_lighting)));
 
-            node.data_mut()
-                .get_object_mut()
-                .set_user_data(Box::new(Rc::clone(&lighting)));
+        earth_node.set_local_rotation(UnitQuaternion::from_axis_angle(
+            &Vector3::x_axis(),
+            -std::f32::consts::FRAC_PI_2,
+        ));
+        //earth_node.append_rotation(&UnitQuaternion::from_axis_angle(
+        //    &Vector3::z_axis(),
+        //    std::f32::consts::PI,
+        //));
 
-            (node, lighting)
-        };
+        // Init the Moon. The moon also uses our custom shadow material.
+        let mut moon_node = window.add_sphere(render_radius(Moon));
+        moon_node.set_material(Rc::clone(&body_mat));
 
-        let (earth_node, earth_lighting) = init_body(Earth);
-        let (moon_node, moon_lighting) = init_body(Moon);
+        let moon_lighting = Rc::new(RefCell::new(BodyLightingData {
+            day_color: Moon.props().color_vec(),
+            day_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
+            night_color: Moon.props().color_vec() * 0.1,
+            night_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
+            ..BodyLightingData::default()
+        }));
+        moon_node
+            .data_mut()
+            .get_object_mut()
+            .set_user_data(Box::new(Rc::clone(&moon_lighting)));
 
         let camera = MyCamera::new();
 
@@ -119,10 +149,8 @@ impl Renderer {
         self.camera
             .update_focus(self.render_position(self.camera_focus.get()));
 
-        self.grid.update(
-            self.camera.arcball.at(),
-            to_render_scale(2e5) * self.camera.arcball.dist(),
-        );
+        self.grid
+            .update(self.camera.arcball.at(), self.camera.arcball.dist() * 4.0);
 
         window.draw_text(
             &self.snapshot.timestamp.to_string(),
@@ -221,11 +249,12 @@ impl Renderer {
 
     fn transition_camera(&mut self, body: Body) {
         let focus = self.render_position(body);
-        let dist = match body {
-            Sun => 3000.0,
-            Earth => 8.0,
-            Moon => 7.0,
-        };
+        let dist = to_render_scale(body.props().radius)
+            * match body {
+                Sun => 10.0,
+                Earth => 10.0,
+                Moon => 30.0,
+            };
         self.camera
             .transition_to(focus + Vector3::new(0.0, 0.0, dist), focus);
     }
