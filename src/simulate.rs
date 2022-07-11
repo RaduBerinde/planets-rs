@@ -3,11 +3,13 @@ use std::{
     time::Instant,
 };
 
-use crate::{choice::Choice, control::ControlEvent};
-
-use super::body::BodyProperties;
+use super::{
+    body::{relative_earth_orientation, BodyProperties},
+    choice::Choice,
+    control::ControlEvent,
+};
 use chrono::{DateTime, TimeZone, Timelike, Utc};
-use kiss3d::nalgebra::{Point3, Vector3};
+use kiss3d::nalgebra::{Point3, UnitQuaternion, Vector3};
 
 #[derive(Copy, Clone)]
 pub struct Snapshot {
@@ -23,7 +25,7 @@ const EARTH_APHELION: f64 = 152.10e6;
 impl Snapshot {
     pub fn simple() -> Snapshot {
         Snapshot {
-            timestamp: Utc.ymd(1900, 1, 1).and_hms(0, 0, 0),
+            timestamp: Utc.ymd(2000, 1, 1).and_hms(0, 0, 0),
             earth_position: Point3::new(EARTH_APHELION, 0.0, 0.0),
             earth_velocity: Vector3::new(0.0, 29.3, 0.0),
             moon_position: Point3::new(EARTH_APHELION - 372_000.0, 0.0, 0.0),
@@ -50,6 +52,12 @@ impl Snapshot {
         );
         let delta_seconds = (s + 60 * (m + 60 * h)) as f64;
         noon_angle + std::f64::consts::PI * (delta_seconds / (12.0 * 3600.0) - 1.0)
+    }
+
+    pub fn earth_orientation(&self) -> UnitQuaternion<f64> {
+        let angle_around_sun = f64::atan2(self.earth_position.y, self.earth_position.x);
+        UnitQuaternion::from_axis_angle(&Vector3::z_axis(), angle_around_sun)
+            * relative_earth_orientation(&self.timestamp)
     }
 }
 

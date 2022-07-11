@@ -1,4 +1,5 @@
-use kiss3d::nalgebra::Point3;
+use chrono::{DateTime, TimeZone, Timelike, Utc};
+use kiss3d::nalgebra::{Point3, Unit, UnitQuaternion, Vector3};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Body {
@@ -49,3 +50,46 @@ impl BodyProperties {
         Point3::new(self.color.0, self.color.1, self.color.2)
     }
 }
+
+const EARTH_TROPICAL_YEAR: f64 = 365.2412 * 24.0 * 3600.0;
+const EARTH_TILT: f64 = 23.4;
+
+// relative_earth_orientation calculates the rotation that needs to be applied
+// to Earth so that it matches the given timestamp.
+//
+// It is assumed that the Sun is directly to the left (-x axis), and that the
+// Earth's UTC timezone faces the sun.
+pub fn relative_earth_orientation(timestamp: &DateTime<Utc>) -> UnitQuaternion<f64> {
+    let (h, m, s) = (timestamp.hour(), timestamp.minute(), timestamp.second());
+    let delta_seconds = (s + 60 * (m + 60 * h)) as f64;
+
+    let rotation_angle = std::f64::consts::PI * (delta_seconds / (12.0 * 3600.0) - 1.0);
+
+    let known_solstice = Utc.ymd(2000, 6, 21).and_hms(1, 47, 43);
+    let delta = timestamp
+        .signed_duration_since(known_solstice)
+        .num_seconds() as f64;
+
+    // axis_orientation is an angle where 0 is the summer solstice
+    // and PI is the winter solstice.
+    let axis_orientation =
+        (delta % EARTH_TROPICAL_YEAR) / EARTH_TROPICAL_YEAR * std::f64::consts::PI;
+    // At angle 0, we have to rotate around the y axis vector.
+    let axis = Vector3::new(axis_orientation.cos(), axis_orientation.sin(), 0.0);
+
+    UnitQuaternion::from_axis_angle(&Vector3::z_axis(), rotation_angle)
+        * UnitQuaternion::from_axis_angle(&Unit::new_normalize(axis), EARTH_TILT.to_radians())
+}
+
+//pub fn earth_rotation_angle(&self) -> f64 {
+//    let v = self.earth_position;
+//    let noon_angle = f64::atan2(v.y, v.x);
+//    let (h, m, s) = (
+//        self.timestamp.hour(),
+//        self.timestamp.minute(),
+//        self.timestamp.second(),
+//    );
+//    let delta_seconds = (s + 60 * (m + 60 * h)) as f64;
+//    noon_angle + std::f64::consts::PI * (delta_seconds / (12.0 * 3600.0) - 1.0)
+//}
+//

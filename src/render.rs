@@ -152,16 +152,20 @@ impl Renderer {
         );
 
         self.earth_node.set_local_transformation(nalgebra::one());
+        // Reorient the Earth so that north points up.
         self.earth_node
             .set_local_rotation(UnitQuaternion::from_axis_angle(
                 &Vector3::x_axis(),
                 -std::f32::consts::FRAC_PI_2,
             ));
-        self.earth_node
-            .append_rotation(&UnitQuaternion::from_axis_angle(
-                &Vector3::z_axis(),
-                self.snapshot.earth_rotation_angle() as f32,
-            ));
+        let earth_orientation: UnitQuaternion<f32> =
+            nalgebra::convert(self.snapshot.earth_orientation());
+        self.earth_node.append_rotation(&earth_orientation);
+        //        self.earth_node
+        //            .append_rotation(&UnitQuaternion::from_axis_angle(
+        //                &Vector3::z_axis(),
+        //                self.snapshot.earth_rotation_angle() as f32,
+        //            ));
 
         for body in [Sun, Earth, Moon] {
             let pos = self.render_position(body);
