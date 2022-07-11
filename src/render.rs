@@ -10,6 +10,7 @@ use kiss3d::camera::Camera;
 
 use kiss3d::light::Light;
 use kiss3d::nalgebra;
+use kiss3d::nalgebra::Isometry3;
 use kiss3d::nalgebra::Point2;
 use kiss3d::nalgebra::UnitQuaternion;
 use kiss3d::nalgebra::Vector2;
@@ -41,12 +42,15 @@ pub struct Renderer {
 
     earth_node: SceneNode,
     earth_lighting: Rc<RefCell<BodyLightingData>>,
+    earth_axis: Option<SceneNode>,
 
     moon_node: SceneNode,
     moon_lighting: Rc<RefCell<BodyLightingData>>,
 
     snapshot: Snapshot,
 }
+
+const SHOW_EARTH_AXIS: bool = true;
 
 impl Renderer {
     pub fn new(snapshot: &Snapshot, window: &mut Window) -> Self {
@@ -96,6 +100,16 @@ impl Renderer {
             .get_object_mut()
             .set_user_data(Box::new(Rc::clone(&earth_lighting)));
 
+        let earth_axis = match SHOW_EARTH_AXIS {
+            false => None,
+            true => {
+                let mut scene_node =
+                    window.add_cylinder(render_radius(Earth) * 0.01, render_radius(Earth) * 3.0);
+                scene_node.set_color(0.5, 0.5, 0.05);
+                Some(scene_node)
+            }
+        };
+
         // Init the Moon. The moon also uses our custom shadow material.
         let mut moon_node = window.add_sphere(render_radius(Moon));
         moon_node.set_material(Rc::clone(&body_mat));
@@ -121,6 +135,7 @@ impl Renderer {
             sun_node,
             earth_node,
             earth_lighting,
+            earth_axis: earth_axis,
             moon_node,
             moon_lighting,
             snapshot: *snapshot,
@@ -151,6 +166,17 @@ impl Renderer {
             &Point3::new(0.8, 0.8, 0.8),
         );
 
+        /*
+        let earth_rotation: UnitQuaternion<f32> = nalgebra::convert(
+            self.snapshot.earth_orientation() *
+            UnitQuaternion::from_axis_angle(
+                &Vector3::x_axis(),
+                -std::f64::consts::FRAC_PI_2,
+            ),
+        );
+        let earth_transform = Isometry3::from_parts(
+            Translation3::new(
+
         self.earth_node.set_local_transformation(nalgebra::one());
         // Reorient the Earth so that north points up.
         self.earth_node
@@ -166,17 +192,28 @@ impl Renderer {
         //                &Vector3::z_axis(),
         //                self.snapshot.earth_rotation_angle() as f32,
         //            ));
+        if let Some(ref mut earth_axis) = self.earth_axis {
+            earth_axis.set_local_transformation(self.earth_node.
+        }
+        */
 
         for body in [Sun, Earth, Moon] {
-            let pos = self.render_position(body);
-            let translation = Translation3::new(pos.x, pos.y, pos.z);
+            let transformation = self.transformation(body);
             let node = match body {
                 Sun => &mut self.sun_node,
                 Earth => &mut self.earth_node,
                 Moon => &mut self.moon_node,
             };
-            node.set_local_translation(translation);
+            node.set_local_transformation(transformation);
             self.render_body_hint(&self.camera, window, body);
+        }
+
+        if self.earth_axis.is_some() {
+            let transformation = self.transformation(Earth);
+            self.earth_axis
+                .as_mut()
+                .unwrap()
+                .set_local_transformation(transformation);
         }
 
         {
@@ -300,5 +337,24 @@ impl Renderer {
             to_render_scale(pos.y),
             to_render_scale(pos.z),
         )
+    }
+
+    pub fn transformation(&self, body: Body) -> Isometry3<f32> {
+        let pos = self.render_position(body);
+        let translation = Translation3::new(pos.x, pos.y, pos.z);
+        let rotation: UnitQuaternion<f32>;
+        match body {
+            Sun | Moon => rotation = nalgebra::one(),
+            Earth => {
+                rotation = nalgebra::convert(
+                    self.snapshot.earth_orientation()
+                        * UnitQuaternion::from_axis_angle(
+                            &Vector3::x_axis(),
+                            -std::f64::consts::FRAC_PI_2,
+                        ),
+                )
+            }
+        }
+        Isometry3::from_parts(translation, rotation)
     }
 }

@@ -70,15 +70,14 @@ pub fn relative_earth_orientation(timestamp: &DateTime<Utc>) -> UnitQuaternion<f
         .signed_duration_since(known_solstice)
         .num_seconds() as f64;
 
-    // axis_orientation is an angle where 0 is the summer solstice
-    // and PI is the winter solstice.
+    // 0 is the summer solstice and PI is the winter solstice.
     let axis_orientation =
-        (delta % EARTH_TROPICAL_YEAR) / EARTH_TROPICAL_YEAR * std::f64::consts::PI;
+        (delta % EARTH_TROPICAL_YEAR) / EARTH_TROPICAL_YEAR * 2.0 * std::f64::consts::PI;
     // At angle 0, we have to rotate around the y axis vector.
-    let axis = Vector3::new(axis_orientation.cos(), axis_orientation.sin(), 0.0);
+    let axis = Vector3::new(axis_orientation.sin(), axis_orientation.cos(), 0.0);
 
-    UnitQuaternion::from_axis_angle(&Vector3::z_axis(), rotation_angle)
-        * UnitQuaternion::from_axis_angle(&Unit::new_normalize(axis), EARTH_TILT.to_radians())
+    UnitQuaternion::from_axis_angle(&Unit::new_normalize(axis), -EARTH_TILT.to_radians())
+        * UnitQuaternion::from_axis_angle(&Vector3::z_axis(), rotation_angle)
 }
 
 //pub fn earth_rotation_angle(&self) -> f64 {
