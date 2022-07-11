@@ -79,7 +79,8 @@ impl MyCamera {
 
     const TRANSITION_TIME: Duration = Duration::from_nanos(250_000_000);
 
-    pub fn transition_to(&mut self, eye: Point3<f32>, focus: Point3<f32>) {
+    pub fn transition_to(&mut self, eye: Point3<f32>, focus: Point3<f32>, min_dist: f32) {
+        self.arcball.set_min_dist(min_dist);
         let now = Instant::now();
         self.transition = Some(TransitionState {
             target_time: now + Self::TRANSITION_TIME,
