@@ -115,8 +115,10 @@ impl Renderer {
         moon_node.set_material(Rc::clone(&body_mat));
 
         let moon_lighting = Rc::new(RefCell::new(BodyLightingData {
-            day_color: Moon.props().color_vec(),
-            day_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
+            day_color: Point3::new(1.0, 1.0, 1.0),
+            day_texture: Some(TextureManager::get_global_manager(|tm| {
+                tm.add(Path::new("./media/2k_moon.jpg"), "moon")
+            })),
             night_color: Moon.props().color_vec() * 0.1,
             night_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
             ..BodyLightingData::default()
@@ -343,19 +345,24 @@ impl Renderer {
     pub fn transformation(&self, body: Body) -> Isometry3<f32> {
         let pos = self.render_position(body);
         let translation = Translation3::new(pos.x, pos.y, pos.z);
-        let rotation: UnitQuaternion<f32>;
-        match body {
-            Sun | Moon => rotation = nalgebra::one(),
-            Earth => {
-                rotation = nalgebra::convert(
-                    self.snapshot.earth_orientation()
-                        * UnitQuaternion::from_axis_angle(
-                            &Vector3::x_axis(),
-                            -std::f64::consts::FRAC_PI_2,
-                        ),
-                )
-            }
-        }
+        let rotation: UnitQuaternion<f32> = match body {
+            Sun => nalgebra::one(),
+            Moon => nalgebra::convert(
+                self.snapshot.moon_orientation()
+                    * UnitQuaternion::from_axis_angle(
+                        &Vector3::x_axis(),
+                        -std::f64::consts::FRAC_PI_2,
+                    ),
+            ),
+
+            Earth => nalgebra::convert(
+                self.snapshot.earth_orientation()
+                    * UnitQuaternion::from_axis_angle(
+                        &Vector3::x_axis(),
+                        -std::f64::consts::FRAC_PI_2,
+                    ),
+            ),
+        };
         Isometry3::from_parts(translation, rotation)
     }
 }

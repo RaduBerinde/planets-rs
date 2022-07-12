@@ -59,6 +59,14 @@ impl Snapshot {
         UnitQuaternion::from_axis_angle(&Vector3::z_axis(), angle_around_sun)
             * relative_earth_orientation(&self.timestamp)
     }
+
+    pub fn moon_orientation(&self) -> UnitQuaternion<f64> {
+        let earth_angle = f64::atan2(
+            self.moon_position.y - self.earth_position.y,
+            self.moon_position.x - self.earth_position.x,
+        );
+        UnitQuaternion::from_axis_angle(&Vector3::z_axis(), earth_angle)
+    }
 }
 
 const DEFAULT_STEP: Seconds = Seconds(60.0);
