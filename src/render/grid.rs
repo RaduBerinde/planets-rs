@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use kiss3d::{
     nalgebra::{Point2, Point3, Point4, Translation3, Vector3},
-    resource::{Material, Mesh},
+    resource::{AllocationType, Material, Mesh},
     scene::SceneNode,
     window::Window,
 };
@@ -38,18 +38,6 @@ impl Grid {
         let mut coords: Vec<Point3<f32>> = Vec::new();
         let mut colors: Vec<Point4<f32>> = Vec::new();
         let mut edges: Vec<Point2<u16>> = Vec::new();
-
-        //coords.push(Point3::new(-1.0, 0.0, 0.0));
-        //colors.push(Point4::new(1.0, 0.0, 0.0, 1.0));
-        //coords.push(Point3::new(1.0, 0.0, 0.0));
-        //colors.push(Point4::new(0.0, 1.0, 0.0, 1.0));
-        //edges.push(Point2::new(0, 1));
-
-        //coords.push(Point3::new(0.0, -1.0, 0.0));
-        //colors.push(axis_color);
-        //coords.push(Point3::new(0.0, 1.0, 0.0));
-        //colors.push(Point4::new(axis_color.x, axis_color.y, axis_color.z, 0.0));
-        //edges.push(Point2::new(2, 3));
 
         let step = 1.0 / num_steps as f32;
         let alpha_scale = |x: f32, y: f32, color: Point4<f32>| -> Point4<f32> {
@@ -120,7 +108,10 @@ impl Grid {
         node.data_mut()
             .get_object_mut()
             .set_user_data(Box::new(Rc::new(RefCell::new(LinesData::new(
-                coords, colors, edges,
+                coords,
+                colors,
+                edges,
+                AllocationType::StaticDraw,
             )))));
 
         Self { node }

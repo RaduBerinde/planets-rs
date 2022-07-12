@@ -21,9 +21,9 @@ pub struct LinesMaterial {
 
 // LinesData is used as for object's generic data (inside a Rc RefCell).
 pub struct LinesData {
-    coords: GPUVec<Point3<f32>>,
-    colors: GPUVec<Point4<f32>>,
-    edges: GPUVec<Point2<u16>>,
+    pub coords: GPUVec<Point3<f32>>,
+    pub colors: GPUVec<Point4<f32>>,
+    pub edges: GPUVec<Point2<u16>>,
 }
 
 impl LinesData {
@@ -31,8 +31,8 @@ impl LinesData {
         coords: Vec<Point3<f32>>,
         colors: Vec<Point4<f32>>,
         edges: Vec<Point2<u16>>,
+        location: AllocationType,
     ) -> Self {
-        let location = AllocationType::StaticDraw;
         LinesData {
             coords: GPUVec::new(coords, BufferType::Array, location),
             colors: GPUVec::new(colors, BufferType::Array, location),

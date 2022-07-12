@@ -31,6 +31,7 @@ mod camera;
 mod grid;
 mod lines_material;
 mod shadow_material;
+mod trail;
 
 pub struct Renderer {
     camera: MyCamera,
@@ -167,37 +168,6 @@ impl Renderer {
             &Font::default(),
             &Point3::new(0.8, 0.8, 0.8),
         );
-
-        /*
-        let earth_rotation: UnitQuaternion<f32> = nalgebra::convert(
-            self.snapshot.earth_orientation() *
-            UnitQuaternion::from_axis_angle(
-                &Vector3::x_axis(),
-                -std::f64::consts::FRAC_PI_2,
-            ),
-        );
-        let earth_transform = Isometry3::from_parts(
-            Translation3::new(
-
-        self.earth_node.set_local_transformation(nalgebra::one());
-        // Reorient the Earth so that north points up.
-        self.earth_node
-            .set_local_rotation(UnitQuaternion::from_axis_angle(
-                &Vector3::x_axis(),
-                -std::f32::consts::FRAC_PI_2,
-            ));
-        let earth_orientation: UnitQuaternion<f32> =
-            nalgebra::convert(self.snapshot.earth_orientation());
-        self.earth_node.append_rotation(&earth_orientation);
-        //        self.earth_node
-        //            .append_rotation(&UnitQuaternion::from_axis_angle(
-        //                &Vector3::z_axis(),
-        //                self.snapshot.earth_rotation_angle() as f32,
-        //            ));
-        if let Some(ref mut earth_axis) = self.earth_axis {
-            earth_axis.set_local_transformation(self.earth_node.
-        }
-        */
 
         for body in [Sun, Earth, Moon] {
             let transformation = self.transformation(body);
