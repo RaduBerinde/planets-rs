@@ -1,6 +1,8 @@
 use self::camera::*;
 use self::grid::Grid;
+use self::lines_material::LinesMaterial;
 use self::shadow_material::*;
+use self::trail::Trail;
 use crate::body::Body;
 use crate::body::Body::*;
 use crate::choice::Choice;
@@ -12,9 +14,11 @@ use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Isometry3;
 use kiss3d::nalgebra::Point2;
+use kiss3d::nalgebra::Point4;
 use kiss3d::nalgebra::UnitQuaternion;
 use kiss3d::nalgebra::Vector2;
 use kiss3d::nalgebra::Vector3;
+use kiss3d::resource::MaterialManager;
 use kiss3d::resource::TextureManager;
 use kiss3d::text::Font;
 use kiss3d::{
@@ -44,9 +48,11 @@ pub struct Renderer {
     earth_node: SceneNode,
     earth_lighting: Rc<RefCell<BodyLightingData>>,
     earth_axis: Option<SceneNode>,
+    earth_trail: Trail,
 
     moon_node: SceneNode,
     moon_lighting: Rc<RefCell<BodyLightingData>>,
+    moon_trail: Trail,
 
     snapshot: Snapshot,
 }
@@ -72,18 +78,32 @@ impl Renderer {
 
         window.set_light(Light::StickToCamera);
 
+        // Init materials.
+        MaterialManager::get_global_manager(|m| {
+            m.add(
+                Rc::new(RefCell::new(
+                    Box::new(ShadowMaterial::new()) as Box<dyn Material + 'static>
+                )),
+                "shadow",
+            );
+            m.add(
+                Rc::new(RefCell::new(
+                    Box::new(LinesMaterial::new()) as Box<dyn Material + 'static>
+                )),
+                "lines",
+            );
+        });
+
         // Init the Sun. The sun uses the default material.
         let mut sun_node = window.add_sphere(render_radius(Sun));
         sun_node.set_color(1.5, 1.5, 1.5);
         sun_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
 
-        let body_mat = Rc::new(RefCell::new(
-            Box::new(ShadowMaterial::new()) as Box<dyn Material + 'static>
-        ));
-
         // Init the Earth. The earth uses our custom shadow material.
         let mut earth_node = window.add_sphere(render_radius(Earth));
-        earth_node.set_material(Rc::clone(&body_mat));
+        earth_node.set_material(MaterialManager::get_global_manager(|m| {
+            m.get("shadow").unwrap()
+        }));
 
         let earth_lighting = Rc::new(RefCell::new(BodyLightingData {
             day_color: Point3::new(1.2, 1.2, 1.2),
@@ -111,9 +131,23 @@ impl Renderer {
             }
         };
 
+        let earth_trail = Trail::new(
+            window,
+            to_render_scale(2e9), // Earth orbit length is about 1e9
+            1000,
+            Point4::new(
+                Earth.props().color.0,
+                Earth.props().color.1,
+                Earth.props().color.2,
+                0.6,
+            ),
+        );
+
         // Init the Moon. The moon also uses our custom shadow material.
         let mut moon_node = window.add_sphere(render_radius(Moon));
-        moon_node.set_material(Rc::clone(&body_mat));
+        moon_node.set_material(MaterialManager::get_global_manager(|m| {
+            m.get("shadow").unwrap()
+        }));
 
         let moon_lighting = Rc::new(RefCell::new(BodyLightingData {
             day_color: Point3::new(1.0, 1.0, 1.0),
@@ -129,6 +163,18 @@ impl Renderer {
             .get_object_mut()
             .set_user_data(Box::new(Rc::clone(&moon_lighting)));
 
+        let moon_trail = Trail::new(
+            window,
+            to_render_scale(1e9), // Earth orbit length is about 1e9
+            1000,
+            Point4::new(
+                Moon.props().color.0,
+                Moon.props().color.1,
+                Moon.props().color.2,
+                0.6,
+            ),
+        );
+
         let camera = MyCamera::new();
 
         let mut renderer = Renderer {
@@ -139,8 +185,10 @@ impl Renderer {
             earth_node,
             earth_lighting,
             earth_axis: earth_axis,
+            earth_trail,
             moon_node,
             moon_lighting,
+            moon_trail,
             snapshot: *snapshot,
         };
 
@@ -164,28 +212,25 @@ impl Renderer {
         window.draw_text(
             &self.snapshot.timestamp.to_string(),
             &Point2::new(20.0, 10.0),
-            100.0,
+            60.0,
             &Font::default(),
             &Point3::new(0.8, 0.8, 0.8),
         );
 
-        for body in [Sun, Earth, Moon] {
-            let transformation = self.transformation(body);
-            let node = match body {
-                Sun => &mut self.sun_node,
-                Earth => &mut self.earth_node,
-                Moon => &mut self.moon_node,
-            };
-            node.set_local_transformation(transformation);
-            self.render_body_hint(&self.camera, window, body);
-        }
+        // Sun.
+        self.sun_node
+            .set_local_transformation(self.transformation(Sun));
+
+        // Earth.
+        let earth_transformation = self.transformation(Earth);
+        self.earth_node
+            .set_local_transformation(earth_transformation);
 
         if self.earth_axis.is_some() {
-            let transformation = self.transformation(Earth);
             self.earth_axis
                 .as_mut()
                 .unwrap()
-                .set_local_transformation(transformation);
+                .set_local_transformation(earth_transformation);
         }
 
         {
@@ -196,6 +241,11 @@ impl Renderer {
             earth_lighting.occluder_pos = self.render_position(Moon);
             earth_lighting.occluder_radius = render_radius(Moon);
         }
+        self.earth_trail.frame(self.render_position(Earth));
+
+        // Moon.
+        self.moon_node
+            .set_local_transformation(self.transformation(Moon));
 
         {
             let mut moon_lighting = self.moon_lighting.borrow_mut();
@@ -203,6 +253,11 @@ impl Renderer {
             moon_lighting.light_radius = render_radius(Sun);
             moon_lighting.occluder_pos = self.render_position(Earth);
             moon_lighting.occluder_radius = render_radius(Earth);
+        }
+        self.moon_trail.frame(self.render_position(Moon));
+
+        for body in [Sun, Earth, Moon] {
+            self.render_body_hint(&self.camera, window, body);
         }
 
         window.render_with_camera(&mut self.camera)

@@ -2,7 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use kiss3d::{
     nalgebra::{Point2, Point3, Point4, Translation3, Vector3},
-    resource::{AllocationType, Material, Mesh},
+    resource::{AllocationType, Material, MaterialManager, Mesh},
     scene::SceneNode,
     window::Window,
 };
@@ -27,13 +27,12 @@ impl Grid {
             ))),
             Vector3::new(1.0, 1.0, 1.0),
         );
-        let axis_color = Point4::new(0.8, 0.8, 0.2, 0.5);
-        let color = Point4::new(0.4, 0.6, 0.8, 0.5);
+        let axis_color = Point4::new(0.6, 0.6, 0.3, 0.5);
+        let color = Point4::new(0.4, 0.5, 0.6, 0.5);
 
-        let lines_mat = Rc::new(RefCell::new(
-            Box::new(LinesMaterial::new()) as Box<dyn Material + 'static>
-        ));
-        node.set_material(lines_mat);
+        node.set_material(MaterialManager::get_global_manager(|m| {
+            m.get("lines").unwrap()
+        }));
 
         let mut coords: Vec<Point3<f32>> = Vec::new();
         let mut colors: Vec<Point4<f32>> = Vec::new();

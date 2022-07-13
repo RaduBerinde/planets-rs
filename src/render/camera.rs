@@ -32,7 +32,7 @@ impl MyCamera {
             Point3::new(0.0, 0.0, 3000.0),
             Point3::origin(),
         );
-        arcball.set_up_axis(Vector3::new(0.0, 0.01, 1.0));
+        arcball.set_up_axis(Vector3::new(0.0, 0.1, 1.0));
 
         Self {
             arcball,
