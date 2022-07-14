@@ -321,16 +321,15 @@ impl Renderer {
     }
 
     fn transition_camera(&mut self, body: Body) {
-        let focus = self.render_position(body);
-        let radius = to_render_scale(body.props().radius);
+        let focus = self.render_position_64(body);
+        let radius = to_render_scale(body.props().radius) as f64;
         let dist = radius
             * match body {
                 Sun => 10.0,
                 Earth => 10.0,
                 Moon => 30.0,
             };
-        self.camera
-            .transition_to(focus + Vector3::new(0.0, 0.0, dist), focus, radius * 1.1);
+        self.camera.transition_to(focus, dist, radius * 1.1);
     }
 
     pub fn handle_event(&mut self, event: ControlEvent) {

@@ -1,3 +1,8 @@
+use std::{
+    f64::consts::PI,
+    time::{Duration, Instant},
+};
+
 use kiss3d::{
     camera::{ArcBall, Camera},
     event::{Action, MouseButton, WindowEvent},
@@ -27,6 +32,16 @@ pub struct MyCamera {
 
     dist_scale_next_frame: Option<f64>,
     last_cursor_pos: Vector2<f64>,
+
+    transition: Option<TransitionState>,
+}
+
+struct TransitionState {
+    target_time: Instant,
+    target_focus: Point3<f64>,
+    target_dist: f64,
+
+    last_update_time: Instant,
 }
 
 impl MyCamera {
@@ -53,26 +68,64 @@ impl MyCamera {
             yaw: 0.0,
             pitch: 0.0,
             min_pitch: 0.0,
-            max_pitch: std::f64::consts::PI * 0.5,
-            //transition: None,
+            max_pitch: PI * 0.5,
             dist_scale_next_frame: None,
             last_cursor_pos: nalgebra::zero(),
+            transition: None,
         };
         res.calc_matrices();
         res
     }
 
     pub fn update_focus(&mut self, focus: Point3<f64>) {
-        self.focus = focus;
         if let Some(scale) = self.dist_scale_next_frame {
             self.dist *= scale;
             self.dist_scale_next_frame = None;
         }
+
+        match self.transition.as_mut() {
+            None => self.focus = focus,
+
+            Some(transition) => {
+                transition.target_focus = focus;
+
+                let now = Instant::now();
+                if transition.target_time.duration_since(now).is_zero() {
+                    self.focus = transition.target_focus;
+                    self.dist = transition.target_dist;
+                    self.pitch = 0.0;
+                    self.yaw = 0.0;
+                    self.transition = None;
+                    return;
+                }
+
+                // Interpolate exponentially.
+                let t = (now - transition.last_update_time).as_secs_f64()
+                    / (transition.target_time - transition.last_update_time).as_secs_f64();
+                let t = 1.0 - (0.003_f64).powf(t);
+                self.focus += (transition.target_focus - self.focus) * t;
+                self.dist += (transition.target_dist - self.dist) * t;
+                self.pitch -= self.pitch * t;
+                self.yaw -= self.yaw * t;
+                transition.last_update_time = now;
+            }
+        }
+
         self.calc_matrices();
     }
 
-    pub fn transition_to(&mut self, _eye: Point3<f32>, _focus: Point3<f32>, min_dist: f32) {
+    const TRANSITION_TIME: Duration = Duration::from_nanos(250_000_000);
+
+    pub fn transition_to(&mut self, focus: Point3<f64>, dist: f64, min_dist: f64) {
         self.min_dist = min_dist as f64;
+
+        let now = Instant::now();
+        self.transition = Some(TransitionState {
+            target_time: now + Self::TRANSITION_TIME,
+            target_focus: focus,
+            target_dist: dist,
+            last_update_time: now,
+        })
     }
 
     pub fn focus(&self) -> Point3<f32> {
@@ -118,6 +171,13 @@ impl MyCamera {
 
     fn handle_rotation(&mut self, dpos: Vector2<f64>) {
         self.yaw += dpos.x * Self::YAW_STEP;
+        while self.yaw < -PI {
+            self.yaw += 2.0 * PI;
+        }
+        while self.yaw > PI {
+            self.yaw -= 2.0 * PI;
+        }
+        self.yaw = self.yaw % PI;
         self.pitch -= dpos.y * Self::PITCH_STEP;
         self.pitch = self.pitch.clamp(self.min_pitch, self.max_pitch);
         self.calc_matrices();
