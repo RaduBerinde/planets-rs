@@ -16,6 +16,15 @@ impl Body {
             Body::Moon => &BodyProperties::MOON,
         }
     }
+
+    pub fn radius(&self) -> f32 {
+        self.props().radius as f32
+    }
+
+    pub fn color3(&self) -> Point3<f32> {
+        let color = self.props().color;
+        Point3::new(color.0, color.1, color.2)
+    }
 }
 
 pub struct BodyProperties {

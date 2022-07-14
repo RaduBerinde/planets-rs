@@ -25,6 +25,7 @@ pub struct MyCamera {
     // at [0, 0, +dist] with the rotation applied;
     dist: f64,
     min_dist: f64,
+    max_dist: f64,
     yaw: f64,
     pitch: f64,
     min_pitch: f64,
@@ -46,16 +47,9 @@ struct TransitionState {
 
 impl MyCamera {
     pub fn new() -> Self {
-        let _arcball = ArcBall::new_with_frustrum(
-            std::f32::consts::PI / 4.0,
-            0.001,
-            100_000.0,
-            Point3::new(0.0, 0.0, 3000.0),
-            Point3::origin(),
-        );
         let fov = std::f32::consts::PI / 4.0;
         let aspect = 800.0 / 600.0;
-        let (znear, zfar) = (1e-3, 1e+5);
+        let (znear, zfar) = (1e+2, 1e+10);
 
         let mut res = Self {
             projection: Perspective3::new(aspect, fov, znear, zfar),
@@ -63,8 +57,9 @@ impl MyCamera {
             view: nalgebra::zero(),
             proj_view: nalgebra::zero(),
             focus: Point3::new(0.0, 0.0, 0.0),
-            dist: 3000.0,
-            min_dist: 100.0,
+            dist: 1e+8,
+            min_dist: 1e+4,
+            max_dist: 1e+9,
             yaw: 0.0,
             pitch: 0.0,
             min_pitch: 0.0,
@@ -79,7 +74,7 @@ impl MyCamera {
 
     pub fn update_focus(&mut self, focus: Point3<f64>) {
         if let Some(scale) = self.dist_scale_next_frame {
-            self.dist *= scale;
+            self.dist = (self.dist * scale).clamp(self.min_dist, self.max_dist);
             self.dist_scale_next_frame = None;
         }
 

@@ -95,12 +95,12 @@ impl Renderer {
         });
 
         // Init the Sun. The sun uses the default material.
-        let mut sun_node = window.add_sphere(render_radius(Sun));
+        let mut sun_node = window.add_sphere(Sun.radius());
         sun_node.set_color(1.5, 1.5, 1.5);
         sun_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
 
         // Init the Earth. The earth uses our custom shadow material.
-        let mut earth_node = window.add_sphere(render_radius(Earth));
+        let mut earth_node = window.add_sphere(Earth.radius());
         earth_node.set_material(MaterialManager::get_global_manager(|m| {
             m.get("shadow").unwrap()
         }));
@@ -125,7 +125,7 @@ impl Renderer {
             false => None,
             true => {
                 let mut scene_node =
-                    window.add_cylinder(render_radius(Earth) * 0.01, render_radius(Earth) * 3.0);
+                    window.add_cylinder(Earth.radius() * 0.01, Earth.radius() * 3.0);
                 scene_node.set_color(0.5, 0.5, 0.05);
                 Some(scene_node)
             }
@@ -133,7 +133,7 @@ impl Renderer {
 
         let earth_trail = Trail::new(
             window,
-            to_render_scale(2e9), // Earth orbit length is about 1e9
+            2e9, // Earth orbit length is about 1e9
             1000,
             Point4::new(
                 Earth.props().color.0,
@@ -144,7 +144,7 @@ impl Renderer {
         );
 
         // Init the Moon. The moon also uses our custom shadow material.
-        let mut moon_node = window.add_sphere(render_radius(Moon));
+        let mut moon_node = window.add_sphere(Moon.radius());
         moon_node.set_material(MaterialManager::get_global_manager(|m| {
             m.get("shadow").unwrap()
         }));
@@ -165,7 +165,7 @@ impl Renderer {
 
         let moon_trail = Trail::new(
             window,
-            to_render_scale(1e9), // Earth orbit length is about 1e9
+            1e9, // Earth orbit length is about 1e9
             1000,
             Point4::new(
                 Moon.props().color.0,
@@ -204,7 +204,7 @@ impl Renderer {
     // Returns false if the window should be closed.
     pub fn frame(&mut self, window: &mut Window) -> bool {
         self.camera
-            .update_focus(self.render_position_64(self.camera_focus.get()));
+            .update_focus(self.position_64(self.camera_focus.get()));
 
         self.grid
             //.update(self.camera.arcball.at(), self.camera.arcball.dist() * 4.0);
@@ -237,12 +237,12 @@ impl Renderer {
         {
             let mut earth_lighting = self.earth_lighting.borrow_mut();
 
-            earth_lighting.light_pos = self.render_position(Sun);
-            earth_lighting.light_radius = render_radius(Sun);
-            earth_lighting.occluder_pos = self.render_position(Moon);
-            earth_lighting.occluder_radius = render_radius(Moon);
+            earth_lighting.light_pos = self.position(Sun);
+            earth_lighting.light_radius = Sun.radius();
+            earth_lighting.occluder_pos = self.position(Moon);
+            earth_lighting.occluder_radius = Moon.radius();
         }
-        self.earth_trail.frame(self.render_position(Earth));
+        self.earth_trail.frame(self.position(Earth));
 
         // Moon.
         self.moon_node
@@ -250,12 +250,12 @@ impl Renderer {
 
         {
             let mut moon_lighting = self.moon_lighting.borrow_mut();
-            moon_lighting.light_pos = self.render_position(Sun);
-            moon_lighting.light_radius = render_radius(Sun);
-            moon_lighting.occluder_pos = self.render_position(Earth);
-            moon_lighting.occluder_radius = render_radius(Earth);
+            moon_lighting.light_pos = self.position(Sun);
+            moon_lighting.light_radius = Sun.radius();
+            moon_lighting.occluder_pos = self.position(Earth);
+            moon_lighting.occluder_radius = Earth.radius();
         }
-        self.moon_trail.frame(self.render_position(Moon));
+        self.moon_trail.frame(self.position(Moon));
 
         for body in [Sun, Earth, Moon] {
             self.render_body_hint(&self.camera, window, body);
@@ -265,11 +265,11 @@ impl Renderer {
     }
 
     fn render_body_hint(&self, camera: &MyCamera, window: &mut Window, body: Body) {
-        let body_pos = self.render_position(body);
+        let body_pos = self.position(body);
 
         // Only show the hint if we see the object as very small.
         let dist = (body_pos - camera.eye()).norm();
-        if dist < render_radius(body) * 200.0 {
+        if dist < body.radius() * 200.0 {
             return;
         }
 
@@ -321,8 +321,8 @@ impl Renderer {
     }
 
     fn transition_camera(&mut self, body: Body) {
-        let focus = self.render_position_64(body);
-        let radius = to_render_scale(body.props().radius) as f64;
+        let focus = self.position_64(body);
+        let radius = body.radius() as f64;
         let dist = radius
             * match body {
                 Sun => 10.0,
@@ -343,32 +343,21 @@ impl Renderer {
     }
 }
 
-pub const RENDER_SCALE: f64 = 1e-5;
-
-fn to_render_scale(d: f64) -> f32 {
-    (d * RENDER_SCALE) as f32
-}
-
-pub fn render_radius(body: Body) -> f32 {
-    to_render_scale(body.props().radius)
-}
-
 impl Renderer {
-    pub fn render_position(&self, body: Body) -> Point3<f32> {
-        nalgebra::convert(self.render_position_64(body))
+    pub fn position(&self, body: Body) -> Point3<f32> {
+        nalgebra::convert(self.position_64(body))
     }
 
-    pub fn render_position_64(&self, body: Body) -> Point3<f64> {
-        let pos = match body {
+    pub fn position_64(&self, body: Body) -> Point3<f64> {
+        match body {
             Sun => Point3::default(),
             Earth => self.snapshot.earth_position,
             Moon => self.snapshot.moon_position,
-        };
-        return pos * RENDER_SCALE;
+        }
     }
 
     pub fn transformation(&self, body: Body) -> Isometry3<f32> {
-        let pos = self.render_position(body);
+        let pos = self.position(body);
         let translation = Translation3::new(pos.x, pos.y, pos.z);
         let rotation: UnitQuaternion<f32> = match body {
             Sun => nalgebra::one(),
