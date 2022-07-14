@@ -1,6 +1,3 @@
-
-
-
 use kiss3d::{
     camera::{ArcBall, Camera},
     event::{Action, MouseButton, WindowEvent},
@@ -80,10 +77,6 @@ impl MyCamera {
 
     pub fn focus(&self) -> Point3<f32> {
         nalgebra::convert(self.focus)
-    }
-
-    pub fn focus_64(&self) -> Point3<f64> {
-        self.focus
     }
 
     pub fn dist(&self) -> f32 {

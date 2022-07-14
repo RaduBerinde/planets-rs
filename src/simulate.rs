@@ -8,7 +8,7 @@ use super::{
     choice::Choice,
     control::ControlEvent,
 };
-use chrono::{DateTime, TimeZone, Timelike, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use kiss3d::nalgebra::{Point3, UnitQuaternion, Vector3};
 
 #[derive(Copy, Clone)]
@@ -40,18 +40,6 @@ impl Snapshot {
             s = step(&s, dt);
         }
         s
-    }
-
-    pub fn earth_rotation_angle(&self) -> f64 {
-        let v = self.earth_position;
-        let noon_angle = f64::atan2(v.y, v.x);
-        let (h, m, s) = (
-            self.timestamp.hour(),
-            self.timestamp.minute(),
-            self.timestamp.second(),
-        );
-        let delta_seconds = (s + 60 * (m + 60 * h)) as f64;
-        noon_angle + std::f64::consts::PI * (delta_seconds / (12.0 * 3600.0) - 1.0)
     }
 
     pub fn earth_orientation(&self) -> UnitQuaternion<f64> {
