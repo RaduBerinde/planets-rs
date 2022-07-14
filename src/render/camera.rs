@@ -1,6 +1,6 @@
-use std::time::{Duration, Instant};
 
-use delegate::delegate;
+
+
 use kiss3d::{
     camera::{ArcBall, Camera},
     event::{Action, MouseButton, WindowEvent},
@@ -34,7 +34,7 @@ pub struct MyCamera {
 
 impl MyCamera {
     pub fn new() -> Self {
-        let mut arcball = ArcBall::new_with_frustrum(
+        let _arcball = ArcBall::new_with_frustrum(
             std::f32::consts::PI / 4.0,
             0.001,
             100_000.0,
@@ -74,7 +74,7 @@ impl MyCamera {
         self.calc_matrices();
     }
 
-    pub fn transition_to(&mut self, eye: Point3<f32>, focus: Point3<f32>, min_dist: f32) {
+    pub fn transition_to(&mut self, _eye: Point3<f32>, _focus: Point3<f32>, min_dist: f32) {
         self.min_dist = min_dist as f64;
     }
 
@@ -136,7 +136,7 @@ impl Camera for MyCamera {
         match *event {
             WindowEvent::Scroll(_, off, _) => self.handle_scroll(off as f32),
 
-            WindowEvent::CursorPos(x, y, modifiers) => {
+            WindowEvent::CursorPos(x, y, _modifiers) => {
                 let curr_pos = Vector2::new(x, y);
 
                 if canvas.get_mouse_button(MouseButton::Button1) == Action::Press {
@@ -186,11 +186,11 @@ impl Camera for MyCamera {
         (self.projection.znear(), self.projection.zfar())
     }
 
-    fn update(&mut self, canvas: &Canvas) {}
+    fn update(&mut self, _canvas: &Canvas) {}
 
     fn upload(
         &self,
-        pass: usize,
+        _pass: usize,
         proj: &mut ShaderUniform<Matrix4<f32>>,
         view: &mut ShaderUniform<Matrix4<f32>>,
     ) {

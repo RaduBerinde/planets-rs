@@ -2,12 +2,12 @@ use std::{cell::RefCell, rc::Rc};
 
 use kiss3d::{
     nalgebra::{Point2, Point3, Point4, Translation3, Vector3},
-    resource::{AllocationType, Material, MaterialManager, Mesh},
+    resource::{AllocationType, MaterialManager, Mesh},
     scene::SceneNode,
     window::Window,
 };
 
-use super::lines_material::{LinesData, LinesMaterial};
+use super::lines_material::{LinesData};
 
 pub struct Grid {
     node: SceneNode,
