@@ -204,10 +204,11 @@ impl Renderer {
     // Returns false if the window should be closed.
     pub fn frame(&mut self, window: &mut Window) -> bool {
         self.camera
-            .update_focus(self.render_position(self.camera_focus.get()));
+            .update_focus(self.render_position_64(self.camera_focus.get()));
 
         self.grid
-            .update(self.camera.arcball.at(), self.camera.arcball.dist() * 4.0);
+            //.update(self.camera.arcball.at(), self.camera.arcball.dist() * 4.0);
+            .update(self.camera.focus(), self.camera.dist() * 4.0);
 
         window.draw_text(
             &self.snapshot.timestamp.to_string(),
@@ -355,16 +356,16 @@ pub fn render_radius(body: Body) -> f32 {
 
 impl Renderer {
     pub fn render_position(&self, body: Body) -> Point3<f32> {
+        nalgebra::convert(self.render_position_64(body))
+    }
+
+    pub fn render_position_64(&self, body: Body) -> Point3<f64> {
         let pos = match body {
             Sun => Point3::default(),
             Earth => self.snapshot.earth_position,
             Moon => self.snapshot.moon_position,
         };
-        Point3::new(
-            to_render_scale(pos.x),
-            to_render_scale(pos.y),
-            to_render_scale(pos.z),
-        )
+        return pos * RENDER_SCALE;
     }
 
     pub fn transformation(&self, body: Body) -> Isometry3<f32> {
