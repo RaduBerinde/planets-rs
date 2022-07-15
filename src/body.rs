@@ -1,3 +1,5 @@
+use std::f64::consts::PI;
+
 use chrono::{DateTime, TimeZone, Timelike, Utc};
 use kiss3d::nalgebra::{Point3, Unit, UnitQuaternion, Vector3};
 
@@ -71,7 +73,7 @@ pub fn relative_earth_orientation(timestamp: &DateTime<Utc>) -> UnitQuaternion<f
     let (h, m, s) = (timestamp.hour(), timestamp.minute(), timestamp.second());
     let delta_seconds = (s + 60 * (m + 60 * h)) as f64;
 
-    let rotation_angle = std::f64::consts::PI * (delta_seconds / (12.0 * 3600.0) - 1.0);
+    let rotation_angle = PI * (delta_seconds / (12.0 * 3600.0) - 1.0);
 
     let known_solstice = Utc.ymd(2000, 6, 21).and_hms(1, 47, 43);
     let delta = timestamp
@@ -79,24 +81,10 @@ pub fn relative_earth_orientation(timestamp: &DateTime<Utc>) -> UnitQuaternion<f
         .num_seconds() as f64;
 
     // 0 is the summer solstice and PI is the winter solstice.
-    let axis_orientation =
-        (delta % EARTH_TROPICAL_YEAR) / EARTH_TROPICAL_YEAR * 2.0 * std::f64::consts::PI;
+    let axis_orientation = (delta % EARTH_TROPICAL_YEAR) / EARTH_TROPICAL_YEAR * 2.0 * PI;
     // At angle 0, we have to rotate around the y axis vector.
     let axis = Vector3::new(axis_orientation.sin(), axis_orientation.cos(), 0.0);
 
     UnitQuaternion::from_axis_angle(&Unit::new_normalize(axis), -EARTH_TILT.to_radians())
         * UnitQuaternion::from_axis_angle(&Vector3::z_axis(), rotation_angle)
 }
-
-//pub fn earth_rotation_angle(&self) -> f64 {
-//    let v = self.earth_position;
-//    let noon_angle = f64::atan2(v.y, v.x);
-//    let (h, m, s) = (
-//        self.timestamp.hour(),
-//        self.timestamp.minute(),
-//        self.timestamp.second(),
-//    );
-//    let delta_seconds = (s + 60 * (m + 60 * h)) as f64;
-//    noon_angle + std::f64::consts::PI * (delta_seconds / (12.0 * 3600.0) - 1.0)
-//}
-//
