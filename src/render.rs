@@ -322,7 +322,7 @@ impl Renderer {
 
     fn transition_camera(&mut self, body: Body) {
         let focus = self.position_64(body);
-        let radius = body.radius() as f64;
+        let radius = body.radius64();
         let dist = radius
             * match body {
                 Sun => 10.0,

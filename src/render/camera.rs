@@ -4,7 +4,7 @@ use std::{
 };
 
 use kiss3d::{
-    camera::{ArcBall, Camera},
+    camera::{Camera},
     event::{Action, MouseButton, WindowEvent},
     nalgebra::{
         self, Isometry3, Matrix4, Perspective3, Point3, Translation3, UnitQuaternion, Vector2,
