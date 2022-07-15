@@ -1,13 +1,13 @@
 use crate::render::Renderer;
 use control::ControlEvent;
 use kiss3d::window::Window;
-use simulate::{Simulation, Snapshot};
+use simulation::{Simulation, Snapshot};
 
 mod body;
 mod choice;
 mod control;
 mod render;
-mod simulate;
+mod simulation;
 
 fn main() {
     let mut window = Window::new_with_size("planets-rs", 1200, 800);

@@ -7,7 +7,7 @@ use crate::body::Body;
 use crate::body::Body::*;
 use crate::choice::Choice;
 use crate::control::ControlEvent;
-use crate::simulate::*;
+use crate::simulation::*;
 use kiss3d::camera::Camera;
 
 use kiss3d::light::Light;
