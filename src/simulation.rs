@@ -1,17 +1,17 @@
 use std::{
-    ops::{Deref, DerefMut, Div, Mul},
+    ops::{Deref, DerefMut},
     time::Instant,
 };
 
 use self::seconds::Seconds;
 
 use super::{
-    body::{relative_earth_orientation, BodyProperties},
+    body::{BodyProperties},
     choice::Choice,
     control::ControlEvent,
 };
 use chrono::{DateTime, TimeZone, Utc};
-use kiss3d::nalgebra::{Point3, UnitQuaternion, Vector3};
+use kiss3d::nalgebra::{Point3, Vector3};
 
 mod seconds;
 mod snapshot;
