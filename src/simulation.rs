@@ -5,12 +5,8 @@ use std::{
 
 use self::seconds::Seconds;
 
-use super::{
-    body::{BodyProperties},
-    choice::Choice,
-    control::ControlEvent,
-};
-use chrono::{DateTime, TimeZone, Utc};
+use super::{body::BodyProperties, choice::Choice, control::ControlEvent};
+use chrono::{TimeZone};
 use kiss3d::nalgebra::{Point3, Vector3};
 
 mod seconds;
@@ -28,7 +24,6 @@ pub struct Simulation {
 
 pub struct StartInfo {
     instant: Instant,
-    timestamp: DateTime<Utc>,
 }
 
 pub enum State {
@@ -60,7 +55,6 @@ impl Simulation {
     pub fn start(&mut self) {
         self.state = State::Running(StartInfo {
             instant: Instant::now(),
-            timestamp: self.current.timestamp,
         });
     }
 
@@ -76,8 +70,8 @@ impl Simulation {
     }
 
     const DEFAULT_STEP: Seconds = Seconds(60.0);
-    const MIN_STEPS_PER_WALL_SECOND: f64 = 100.0;
-    const MAX_STEPS_PER_WALL_SECOND: f64 = 10000.0;
+    const MIN_STEPS_PER_FRAME: f64 = 100.0;
+    const MAX_STEPS_PER_FRAME: f64 = 10000.0;
 
     pub fn advance(&mut self) {
         match &self.state {
@@ -89,10 +83,8 @@ impl Simulation {
                 let simulation_elapsed = elapsed * simulation_speed_per_sec.0;
 
                 let mut step = Simulation::DEFAULT_STEP;
-                step =
-                    step.at_least(simulation_speed_per_sec / Simulation::MAX_STEPS_PER_WALL_SECOND);
-                step =
-                    step.at_most(simulation_speed_per_sec / Simulation::MIN_STEPS_PER_WALL_SECOND);
+                step = step.at_least(simulation_speed_per_sec / Simulation::MAX_STEPS_PER_FRAME);
+                step = step.at_most(simulation_speed_per_sec / Simulation::MIN_STEPS_PER_FRAME);
 
                 let num_steps = (simulation_elapsed / step) as i32;
                 if self.reverse {
