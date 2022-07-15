@@ -8,6 +8,7 @@ pub enum ControlEvent {
     StartStop,
     Faster,
     Slower,
+    Reverse,
 }
 
 lazy_static! {
@@ -16,6 +17,7 @@ lazy_static! {
         ControlEvent::StartStop => Key::Space,
         ControlEvent::Faster => Key::Equals,
         ControlEvent::Slower => Key::Minus,
+        ControlEvent::Reverse => Key::R,
     };
 }
 
@@ -29,12 +31,6 @@ impl ControlEvent {
                         return Some(ev);
                     }
                 }
-                //for ev in all::<ControlEvent>() {
-                //    if key == ev.key() {
-                //        event.inhibited = true;
-                //        return Some(ev);
-                //    }
-                //}
             }
             _ => (),
         }
@@ -47,6 +43,7 @@ impl ControlEvent {
             ControlEvent::StartStop => "Start/stop simulation",
             ControlEvent::Faster => "Increase the simulation speed",
             ControlEvent::Slower => "Decrease the simulation speed",
+            ControlEvent::Reverse => "Reverse simulation",
         }
     }
 }

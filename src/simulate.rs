@@ -1,5 +1,5 @@
 use std::{
-    ops::{Div, Mul},
+    ops::{Deref, DerefMut, Div, Mul},
     time::Instant,
 };
 
@@ -33,10 +33,9 @@ impl Snapshot {
         }
     }
 
-    fn advance_to(self: &Snapshot, new_timestamp: DateTime<Utc>, dt: Seconds) -> Snapshot {
-        assert!(dt.0 > 0.0);
+    fn advance(self: &Snapshot, dt: Seconds, num_steps: i32) -> Snapshot {
         let mut s = *self;
-        while s.timestamp + dt.to_duration() <= new_timestamp {
+        for _ in 0..num_steps {
             s = step(&s, dt);
         }
         s
@@ -117,6 +116,7 @@ pub struct Simulation {
     pub current: Snapshot,
     // Simulated duration per elapsed second.
     pub speed: Choice<chrono::Duration>,
+    pub reverse: bool,
     pub state: State,
 }
 
@@ -147,6 +147,7 @@ impl Simulation {
             current: start,
             speed: Choice::new_with_initial(speeds, 2),
             state: State::Stopped,
+            reverse: false,
         }
     }
 
@@ -176,31 +177,30 @@ impl Simulation {
 
                 let simulation_speed_per_sec = Seconds::from(self.speed.get());
                 let simulation_elapsed = elapsed * simulation_speed_per_sec.0;
-                let new_timestamp = start_info.timestamp + simulation_elapsed.to_duration();
 
                 let mut step = DEFAULT_STEP;
                 step = step.at_least(simulation_speed_per_sec / MAX_STEPS_PER_WALL_SECOND);
                 step = step.at_most(simulation_speed_per_sec / MIN_STEPS_PER_WALL_SECOND);
-                self.current = self.current.advance_to(new_timestamp, step);
+
+                let num_steps = (simulation_elapsed / step) as i32;
+                if self.reverse {
+                    step = Seconds(-step.0);
+                }
+                self.current = self.current.advance(step, num_steps);
             }
             _ => {}
         }
     }
 
     pub fn adjust_speed(&mut self, new_speed: Choice<chrono::Duration>) {
-        match &self.state {
-            State::Running(_) => {
-                // We need to stop and restart because advance assumes the
-                // speed is unchanged since start.
-                self.stop();
-                self.speed = new_speed;
-                self.start();
-            }
+        // We need to stop and restart because advance assumes the
+        // speed is unchanged since start.
+        self.stopped().speed = new_speed;
+    }
 
-            State::Stopped => {
-                self.speed = new_speed;
-            }
-        }
+    pub fn reverse(&mut self) {
+        let mut s = self.stopped();
+        s.reverse = !s.reverse;
     }
 
     pub fn handle_event(&mut self, ev: ControlEvent) {
@@ -208,7 +208,23 @@ impl Simulation {
             ControlEvent::StartStop => self.toggle_start(),
             ControlEvent::Faster => self.adjust_speed(self.speed.next()),
             ControlEvent::Slower => self.adjust_speed(self.speed.prev()),
+            ControlEvent::Reverse => self.reverse(),
             _ => {}
+        }
+    }
+
+    fn stopped(&mut self) -> StoppedRef {
+        let needs_restart = match self.state {
+            State::Running(_) => {
+                self.stop();
+                true
+            }
+
+            State::Stopped => false,
+        };
+        StoppedRef {
+            sim: self,
+            needs_restart: needs_restart,
         }
     }
 }
@@ -252,5 +268,40 @@ impl Div<f64> for Seconds {
     type Output = Seconds;
     fn div(self, other: f64) -> Seconds {
         Seconds(self.0 / other)
+    }
+}
+
+impl Div<Seconds> for Seconds {
+    type Output = f64;
+    fn div(self, other: Seconds) -> f64 {
+        self.0 / other.0
+    }
+}
+
+// StoppedRef is used internally to temporarily stop the simulation to make changes.
+struct StoppedRef<'a> {
+    sim: &'a mut Simulation,
+    needs_restart: bool,
+}
+
+impl<'a> Drop for StoppedRef<'a> {
+    fn drop(&mut self) {
+        if self.needs_restart {
+            self.sim.start();
+        }
+    }
+}
+
+impl<'a> Deref for StoppedRef<'a> {
+    type Target = Simulation;
+
+    fn deref(&self) -> &Self::Target {
+        self.sim
+    }
+}
+
+impl<'a> DerefMut for StoppedRef<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.sim
     }
 }

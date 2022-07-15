@@ -66,6 +66,10 @@ impl Trail {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.history.clear();
+    }
+
     pub fn frame(&mut self, p: Point3<f32>) {
         if self.history.is_empty() {
             self.history.push_front(DataPoint {
