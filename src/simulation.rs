@@ -6,7 +6,7 @@ use std::{
 use self::seconds::Seconds;
 
 use super::{body::BodyProperties, choice::Choice, control::ControlEvent};
-use chrono::{TimeZone};
+use chrono::{DateTime, TimeZone, Utc};
 use kiss3d::nalgebra::{Point3, Vector3};
 
 mod seconds;
@@ -24,6 +24,7 @@ pub struct Simulation {
 
 pub struct StartInfo {
     instant: Instant,
+    timestamp: DateTime<Utc>,
 }
 
 pub enum State {
@@ -55,6 +56,7 @@ impl Simulation {
     pub fn start(&mut self) {
         self.state = State::Running(StartInfo {
             instant: Instant::now(),
+            timestamp: self.current.timestamp,
         });
     }
 
@@ -70,23 +72,38 @@ impl Simulation {
     }
 
     const DEFAULT_STEP: Seconds = Seconds(60.0);
-    const MIN_STEPS_PER_FRAME: f64 = 100.0;
-    const MAX_STEPS_PER_FRAME: f64 = 10000.0;
+    const MIN_STEPS_PER_WALL_SECOND: f64 = 100.0;
+    const MAX_STEPS_PER_WALL_SECOND: f64 = 10000.0;
+
+    // When this limit becomes effective, we are not able to keep up with the wall time.
+    const MAX_STEPS_PER_FRAME: u32 = 1000;
 
     pub fn advance(&mut self) {
         match &self.state {
             State::Running(start_info) => {
-                let elapsed = Seconds::from(start_info.instant.elapsed());
-                assert!(elapsed.0 > 0.0);
-
                 let simulation_speed_per_sec = Seconds::from(self.speed.get());
-                let simulation_elapsed = elapsed * simulation_speed_per_sec.0;
 
-                let mut step = Simulation::DEFAULT_STEP;
-                step = step.at_least(simulation_speed_per_sec / Simulation::MAX_STEPS_PER_FRAME);
-                step = step.at_most(simulation_speed_per_sec / Simulation::MIN_STEPS_PER_FRAME);
+                // Wall time elapsed since start().
+                let elapsed = Seconds::from(start_info.instant.elapsed());
+                assert!(elapsed.0 >= 0.0);
 
-                let num_steps = (simulation_elapsed / step) as i32;
+                // Simulation time elapsed since start().
+                let simulation_elapsed = simulation_speed_per_sec * elapsed.0;
+
+                let simulation_advance = if !self.reverse {
+                    let target_timestamp = start_info.timestamp + simulation_elapsed.to_duration();
+                    Seconds::from(target_timestamp - self.current.timestamp)
+                } else {
+                    let target_timestamp = start_info.timestamp - simulation_elapsed.to_duration();
+                    Seconds::from(self.current.timestamp - target_timestamp)
+                };
+
+                let mut step = Simulation::DEFAULT_STEP
+                    .at_least(simulation_speed_per_sec / Simulation::MAX_STEPS_PER_WALL_SECOND)
+                    .at_most(simulation_speed_per_sec / Simulation::MIN_STEPS_PER_WALL_SECOND);
+
+                let num_steps =
+                    ((simulation_advance / step) as u32).min(Simulation::MAX_STEPS_PER_FRAME);
                 if self.reverse {
                     step = Seconds(-step.0);
                 }
