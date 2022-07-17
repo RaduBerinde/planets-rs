@@ -8,6 +8,7 @@ mod choice;
 mod control;
 mod render;
 mod simulation;
+mod ui;
 
 fn main() {
     let mut window = Window::new_with_size("planets-rs", 1200, 800);
