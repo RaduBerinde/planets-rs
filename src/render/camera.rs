@@ -107,8 +107,8 @@ impl MyCamera {
                     // position can be moving.
                     //
                     // t is in [0, 1] range.
-                    // We want to move slower at the beginning and end, so we pass t through a function
-                    //   f(t) = 1 / (1 + exp(-2x)).. TODO
+                    // We want to move slower at the beginning and end, so we
+                    // pass t through a function f(t).
                     //
                     // At time t:
                     //   pos(t) = start * (1 - f(t)) + end * f(t)
@@ -202,13 +202,12 @@ impl MyCamera {
 
     fn handle_rotation(&mut self, dpos: Vector2<f64>) {
         self.yaw += dpos.x * Self::YAW_STEP;
-        while self.yaw < -PI {
-            self.yaw += 2.0 * PI;
-        }
-        while self.yaw > PI {
+        // Keep yaw in the -PI to PI range, so that the trivial interpolation
+        // works when the camera transitions to yaw = 0.
+        self.yaw = self.yaw.rem_euclid(2.0 * PI);
+        if self.yaw > PI {
             self.yaw -= 2.0 * PI;
         }
-        self.yaw = self.yaw % PI;
         self.pitch -= dpos.y * Self::PITCH_STEP;
         self.pitch = self.pitch.clamp(self.min_pitch, self.max_pitch);
         self.calc_matrices();
