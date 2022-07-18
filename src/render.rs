@@ -8,6 +8,7 @@ use crate::body::Body::*;
 use crate::choice::Choice;
 use crate::control::ControlEvent;
 use crate::simulation::*;
+use crate::ui::Ui;
 use kiss3d::camera::Camera;
 
 use kiss3d::light::Light;
@@ -53,6 +54,8 @@ pub struct Renderer {
     moon_node: SceneNode,
     moon_lighting: Rc<RefCell<BodyLightingData>>,
     moon_trail: Trail,
+
+    ui: Ui,
 
     snapshot: Snapshot,
 }
@@ -175,7 +178,8 @@ impl Renderer {
             ),
         );
 
-        let camera = MyCamera::new();
+        let camera = MyCamera::new(-Ui::WIDTH * window.scale_factor());
+        let ui = Ui::new(window);
 
         let mut renderer = Renderer {
             camera,
@@ -189,6 +193,7 @@ impl Renderer {
             moon_node,
             moon_lighting,
             moon_trail,
+            ui,
             snapshot: *snapshot,
         };
 
@@ -261,6 +266,7 @@ impl Renderer {
             self.render_body_hint(&self.camera, window, body);
         }
 
+        self.ui.frame(window);
         window.render_with_camera(&mut self.camera)
     }
 
@@ -329,7 +335,7 @@ impl Renderer {
                 Earth => 10.0,
                 Moon => 30.0,
             };
-        self.camera.transition_to(focus, dist, radius * 1.1);
+        self.camera.transition_to(focus, dist, radius * 1.5);
     }
 
     pub fn handle_event(&mut self, event: ControlEvent) {

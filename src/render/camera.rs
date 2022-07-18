@@ -15,7 +15,10 @@ use kiss3d::{
 };
 
 pub struct MyCamera {
-    projection: Perspective3<f32>,
+    projection: Perspective3<f64>,
+    // 2D Displacement of projection on X axis; used to move the center to
+    // account for the UI panel.
+    dx_px: f64,
     proj: Matrix4<f32>,
     view: Matrix4<f32>,
     proj_view: Matrix4<f32>,
@@ -33,6 +36,7 @@ pub struct MyCamera {
 
     dist_scale_next_frame: Option<f64>,
     last_cursor_pos: Vector2<f64>,
+    last_framebuffer_size: Vector2<u32>,
 
     transition: Option<TransitionState>,
 }
@@ -46,13 +50,14 @@ struct TransitionState {
 }
 
 impl MyCamera {
-    pub fn new() -> Self {
-        let fov = std::f32::consts::PI / 4.0;
+    pub fn new(dx_px: f64) -> Self {
+        let fov = std::f64::consts::PI / 4.0;
         let aspect = 800.0 / 600.0;
-        let (znear, zfar) = (1e+2, 1e+10);
+        let (znear, zfar) = (1e+3, 2e+9);
 
         let mut res = Self {
             projection: Perspective3::new(aspect, fov, znear, zfar),
+            dx_px: dx_px,
             proj: nalgebra::zero(),
             view: nalgebra::zero(),
             proj_view: nalgebra::zero(),
@@ -66,6 +71,7 @@ impl MyCamera {
             max_pitch: PI * 0.5,
             dist_scale_next_frame: None,
             last_cursor_pos: nalgebra::zero(),
+            last_framebuffer_size: Vector2::new(800, 600),
             transition: None,
         };
         res.calc_matrices();
@@ -91,18 +97,17 @@ impl MyCamera {
                     self.pitch = 0.0;
                     self.yaw = 0.0;
                     self.transition = None;
-                    return;
+                } else {
+                    // Interpolate exponentially.
+                    let t = (now - transition.last_update_time).as_secs_f64()
+                        / (transition.target_time - transition.last_update_time).as_secs_f64();
+                    let t = 1.0 - (0.003_f64).powf(t);
+                    self.focus += (transition.target_focus - self.focus) * t;
+                    self.dist += (transition.target_dist - self.dist) * t;
+                    self.pitch -= self.pitch * t;
+                    self.yaw -= self.yaw * t;
+                    transition.last_update_time = now;
                 }
-
-                // Interpolate exponentially.
-                let t = (now - transition.last_update_time).as_secs_f64()
-                    / (transition.target_time - transition.last_update_time).as_secs_f64();
-                let t = 1.0 - (0.003_f64).powf(t);
-                self.focus += (transition.target_focus - self.focus) * t;
-                self.dist += (transition.target_dist - self.dist) * t;
-                self.pitch -= self.pitch * t;
-                self.yaw -= self.yaw * t;
-                transition.last_update_time = now;
             }
         }
 
@@ -142,9 +147,16 @@ impl MyCamera {
     }
 
     fn calc_matrices(&mut self) {
-        self.proj = *self.projection.as_matrix();
-        self.view = nalgebra::convert(self.view_transform_64().to_homogeneous());
-        self.proj_view = self.proj * self.view;
+        let mut proj = *self.projection.as_matrix();
+        let dx = f64::clamp(self.dx_px / self.last_framebuffer_size.x as f64, -0.4, 0.4);
+        proj = Translation3::new(dx, 0.0, 0.0).to_homogeneous() * proj;
+
+        let view = self.view_transform_64().to_homogeneous();
+        let proj_view = proj * view;
+
+        self.proj = nalgebra::convert(proj);
+        self.view = nalgebra::convert(view);
+        self.proj_view = nalgebra::convert(proj_view);
         //self.inverse_proj_view = self.proj_view.try_inverse().unwrap();
     }
 
@@ -206,8 +218,12 @@ impl Camera for MyCamera {
             }
 
             WindowEvent::FramebufferSize(w, h) => {
-                self.projection.set_aspect(w as f32 / h as f32);
-                self.calc_matrices();
+                let vec = Vector2::new(w, h);
+                if self.last_framebuffer_size != vec {
+                    self.last_framebuffer_size = vec;
+                    self.projection.set_aspect(w as f64 / h as f64);
+                    self.calc_matrices();
+                }
             }
 
             _ => {}
@@ -231,7 +247,10 @@ impl Camera for MyCamera {
     }
 
     fn clip_planes(&self) -> (f32, f32) {
-        (self.projection.znear(), self.projection.zfar())
+        (
+            self.projection.znear() as f32,
+            self.projection.zfar() as f32,
+        )
     }
 
     fn update(&mut self, _canvas: &Canvas) {}

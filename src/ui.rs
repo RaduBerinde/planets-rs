@@ -10,8 +10,8 @@ pub struct Ui {
 }
 
 impl Ui {
-    pub const WIDTH: conrod::Scalar = 300.0;
-    const MARGIN: conrod::Scalar = 30.0;
+    pub const WIDTH: conrod::Scalar = 280.0;
+    const MARGIN: conrod::Scalar = 20.0;
 
     pub fn new(window: &mut Window) -> Self {
         let conrod_ui = window.conrod_ui_mut();
@@ -21,7 +21,7 @@ impl Ui {
         Self { ids }
     }
 
-    pub fn render(&self, window: &mut Window) {
+    pub fn frame(&self, window: &mut Window) {
         let mut ui = window.conrod_ui_mut().set_widgets();
 
         // `Canvas` is a widget that provides some basic functionality for laying out children widgets.
@@ -42,9 +42,9 @@ impl Ui {
             padding: Padding::none(),
             x_position: Position::Relative(Relative::Align(Align::Start), None),
             y_position: Position::Relative(Relative::Direction(Direction::Backwards, 20.0), None),
-            background_color: conrod::color::Color::Rgba(0.05, 0.05, 0.05, 0.8),
+            background_color: conrod::color::Color::Rgba(0.05, 0.05, 0.05, 0.75),
             shape_color: conrod::color::LIGHT_CHARCOAL,
-            border_color: conrod::color::WHITE,
+            border_color: conrod::color::Color::Rgba(0.31, 0.31, 0.29, 1.0),
             border_width: 1.0,
             label_color: conrod::color::Color::Rgba(0.31, 0.31, 0.29, 1.0),
             font_id: None,
