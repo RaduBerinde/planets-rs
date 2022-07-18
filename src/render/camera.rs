@@ -22,7 +22,11 @@ pub struct MyCamera {
     proj: Matrix4<f32>,
     view: Matrix4<f32>,
     proj_view: Matrix4<f32>,
-    //proj_view: Matrix4<f32>,
+    // The camera maintains the focus point, but it does not actually apply it.
+    // Instead, objects are expected to be translated by the camera focus, and
+    // the camera always points at the origin. This is to prevent f32
+    // instability when the camera is close to an object that is far from the
+    // origin.
     focus: Point3<f64>,
     // The camera eye, in relation to the focus, is located
     // at [0, 0, +dist] with the rotation applied;
@@ -53,7 +57,7 @@ impl MyCamera {
     pub fn new(dx_px: f64) -> Self {
         let fov = std::f64::consts::PI / 4.0;
         let aspect = 800.0 / 600.0;
-        let (znear, zfar) = (1e+3, 2e+9);
+        let (znear, zfar) = (5e+2, 1e+10);
 
         let mut res = Self {
             projection: Perspective3::new(aspect, fov, znear, zfar),
@@ -98,6 +102,25 @@ impl MyCamera {
                     self.yaw = 0.0;
                     self.transition = None;
                 } else {
+                    // We want to interpolate between the start position and the
+                    // end position. This is a bit tricky because the end
+                    // position can be moving.
+                    //
+                    // t is in [0, 1] range.
+                    // We want to move slower at the beginning and end, so we pass t through a function
+                    //   f(t) = 1 / (1 + exp(-2x)).. TODO
+                    //
+                    // At time t:
+                    //   pos(t) = start * (1 - f(t)) + end * f(t)
+                    //
+                    // At last time (t-dt): let df = f(t) - f(t-dt)
+                    //   pos(t-dt) = start * (1 - f(t - dt)) + end * f(t - dt)
+                    //             = start * (1 - f(t) + df)) + end * (f(t) - df)
+                    //             = start * (1 - f(t)) + end * f(t) + df * (start - end)
+                    //             = pos(t) + df * (start - end)
+                    //
+                    //   pos(t) = pos(t-dt) + df * (end - start)
+
                     // Interpolate exponentially.
                     let t = (now - transition.last_update_time).as_secs_f64()
                         / (transition.target_time - transition.last_update_time).as_secs_f64();
@@ -110,7 +133,6 @@ impl MyCamera {
                 }
             }
         }
-
         self.calc_matrices();
     }
 
@@ -128,17 +150,15 @@ impl MyCamera {
         })
     }
 
-    pub fn focus(&self) -> Point3<f32> {
-        nalgebra::convert(self.focus)
+    //pub fn focus(&self) -> Point3<f32> {
+    //    nalgebra::convert(self.focus)
+    //}
+    pub fn focus(&self) -> Point3<f64> {
+        self.focus
     }
 
     pub fn dist(&self) -> f32 {
         self.dist as f32
-    }
-
-    pub fn eye_64(&self) -> Point3<f64> {
-        let relative = self.rotation() * Point3::new(0.0, 0.0, self.dist);
-        self.focus + relative.coords
     }
 
     fn rotation(&self) -> UnitQuaternion<f64> {
@@ -161,11 +181,15 @@ impl MyCamera {
     }
 
     pub fn view_transform_64(&self) -> Isometry3<f64> {
-        let mut result = Isometry3::from_parts(Translation3::from(-self.focus), nalgebra::one());
-        result.append_rotation_mut(&self.rotation().inverse());
-        result.append_translation_mut(&Translation3::new(0.0, 0.0, -self.dist));
+        Isometry3::from_parts(
+            Translation3::new(0.0, 0.0, -self.dist),
+            self.rotation().inverse(),
+        )
+        //let mut result = Isometry3::from_parts(Translation3::from(-self.focus), nalgebra::one());
+        //result.append_rotation_mut(&self.rotation().inverse());
+        //result.append_translation_mut(&Translation3::new(0.0, 0.0, -self.dist));
 
-        result
+        //result
     }
 
     const SCROLL_STEP: f64 = 0.99;
@@ -230,8 +254,9 @@ impl Camera for MyCamera {
         }
     }
 
+    // eye is the camera eye, relative to the focus.
     fn eye(&self) -> Point3<f32> {
-        nalgebra::convert(self.eye_64())
+        nalgebra::convert(self.rotation() * Point3::new(0.0, 0.0, self.dist))
     }
 
     fn view_transform(&self) -> Isometry3<f32> {

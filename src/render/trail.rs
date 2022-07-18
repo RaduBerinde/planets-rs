@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
 use kiss3d::{
-    nalgebra::{Point2, Point3, Point4, Vector3},
+    nalgebra::{self, Point2, Point3, Point4, Vector3},
     resource::{AllocationType, MaterialManager, Mesh},
     window::Window,
 };
@@ -9,9 +9,9 @@ use kiss3d::{
 use super::lines_material::LinesData;
 
 pub struct Trail {
-    max_length: f32,
+    max_length: f64,
     max_points: usize,
-    min_dist: f32,
+    min_dist: f64,
     color: Point4<f32>,
 
     history: VecDeque<DataPoint>,
@@ -20,14 +20,14 @@ pub struct Trail {
 }
 
 struct DataPoint {
-    p: Point3<f32>,
-    dist_to_prev: f32,
+    p: Point3<f64>,
+    dist_to_prev: f64,
 }
 
 impl Trail {
     pub fn new(
         window: &mut Window,
-        max_length: f32,
+        max_length: f64,
         max_points: usize,
         color: Point4<f32>,
     ) -> Self {
@@ -59,7 +59,7 @@ impl Trail {
         Self {
             max_length,
             max_points,
-            min_dist: max_length / max_points as f32,
+            min_dist: max_length / max_points as f64,
             color,
             history: VecDeque::new(),
             lines_data,
@@ -70,7 +70,7 @@ impl Trail {
         self.history.clear();
     }
 
-    pub fn frame(&mut self, p: Point3<f32>) {
+    pub fn frame(&mut self, p: Point3<f64>, camera_focus: Point3<f64>) {
         if self.history.is_empty() {
             self.history.push_front(DataPoint {
                 p,
@@ -82,9 +82,9 @@ impl Trail {
         let mut lines_data = self.lines_data.borrow_mut();
         let coords = lines_data.coords.data_mut().as_mut().unwrap();
         coords.clear();
-        coords.push(p);
+        coords.push(nalgebra::convert(p - camera_focus.coords));
         for dp in &self.history {
-            coords.push(dp.p);
+            coords.push(nalgebra::convert(dp.p - camera_focus.coords));
         }
 
         let dist_to_prev = (p - self.history[0].p).norm();
@@ -97,7 +97,7 @@ impl Trail {
         let mut dist_so_far = dist_to_prev;
         for dp in &self.history {
             let mut color = self.color;
-            color.w *= 1.0 - dist_so_far * dist_to_alpha_scale;
+            color.w *= (1.0 - dist_so_far * dist_to_alpha_scale) as f32;
             colors.push(color);
             dist_so_far += dp.dist_to_prev;
         }

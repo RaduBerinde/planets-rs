@@ -209,11 +209,14 @@ impl Renderer {
     // Returns false if the window should be closed.
     pub fn frame(&mut self, window: &mut Window) -> bool {
         self.camera
-            .update_focus(self.position_64(self.camera_focus.get()));
+            .update_focus(self.abs_position(self.camera_focus.get()));
 
         self.grid
             //.update(self.camera.arcball.at(), self.camera.arcball.dist() * 4.0);
-            .update(self.camera.focus(), self.camera.dist() * 4.0);
+            .update(
+                Point3::new(0.0, 0.0, 0.0), /*self.camera.focus()*/
+                self.camera.dist() * 4.0,
+            );
 
         window.draw_text(
             &self.snapshot.timestamp.to_string(),
@@ -242,12 +245,13 @@ impl Renderer {
         {
             let mut earth_lighting = self.earth_lighting.borrow_mut();
 
-            earth_lighting.light_pos = self.position(Sun);
+            earth_lighting.light_pos = self.render_position(Sun);
             earth_lighting.light_radius = Sun.radius();
-            earth_lighting.occluder_pos = self.position(Moon);
+            earth_lighting.occluder_pos = self.render_position(Moon);
             earth_lighting.occluder_radius = Moon.radius();
         }
-        self.earth_trail.frame(self.position(Earth));
+        self.earth_trail
+            .frame(self.abs_position(Earth), self.camera.focus());
 
         // Moon.
         self.moon_node
@@ -255,12 +259,13 @@ impl Renderer {
 
         {
             let mut moon_lighting = self.moon_lighting.borrow_mut();
-            moon_lighting.light_pos = self.position(Sun);
+            moon_lighting.light_pos = self.render_position(Sun);
             moon_lighting.light_radius = Sun.radius();
-            moon_lighting.occluder_pos = self.position(Earth);
+            moon_lighting.occluder_pos = self.render_position(Earth);
             moon_lighting.occluder_radius = Earth.radius();
         }
-        self.moon_trail.frame(self.position(Moon));
+        self.moon_trail
+            .frame(self.abs_position(Moon), self.camera.focus());
 
         for body in [Sun, Earth, Moon] {
             self.render_body_hint(&self.camera, window, body);
@@ -271,7 +276,7 @@ impl Renderer {
     }
 
     fn render_body_hint(&self, camera: &MyCamera, window: &mut Window, body: Body) {
-        let body_pos = self.position(body);
+        let body_pos = self.render_position(body);
 
         // Only show the hint if we see the object as very small.
         let dist = (body_pos - camera.eye()).norm();
@@ -327,7 +332,7 @@ impl Renderer {
     }
 
     fn transition_camera(&mut self, body: Body) {
-        let focus = self.position_64(body);
+        let focus = self.abs_position(body);
         let radius = body.radius64();
         let dist = radius
             * match body {
@@ -354,11 +359,11 @@ impl Renderer {
 }
 
 impl Renderer {
-    pub fn position(&self, body: Body) -> Point3<f32> {
-        nalgebra::convert(self.position_64(body))
+    pub fn render_position(&self, body: Body) -> Point3<f32> {
+        nalgebra::convert(self.abs_position(body) - self.camera.focus().coords)
     }
 
-    pub fn position_64(&self, body: Body) -> Point3<f64> {
+    pub fn abs_position(&self, body: Body) -> Point3<f64> {
         match body {
             Sun => Point3::default(),
             Earth => self.snapshot.earth_position,
@@ -367,7 +372,7 @@ impl Renderer {
     }
 
     pub fn transformation(&self, body: Body) -> Isometry3<f32> {
-        let pos = self.position(body);
+        let pos = self.render_position(body);
         let translation = Translation3::new(pos.x, pos.y, pos.z);
         let rotation: UnitQuaternion<f32> = match body {
             Sun => nalgebra::one(),
