@@ -14,6 +14,8 @@ use kiss3d::{
     window::Canvas,
 };
 
+use super::interpolate;
+
 pub struct MyCamera {
     projection: Perspective3<f64>,
     // 2D Displacement of projection on X axis; used to move the center to
@@ -49,11 +51,23 @@ struct TransitionState {
     target_time: Instant,
     target_focus: Point3<f64>,
     target_dist: f64,
+    mid_dist: f64,
+    min_dist_after_transition: f64,
 
-    last_update_time: Instant,
+    dist_to_intermediate: interpolate::Params,
+    dist_from_intermediate: interpolate::Params,
+    focus_interp: interpolate::Params,
+    angles_interp: interpolate::Params,
+
+    start_time: Instant,
+    last_t: f64,
 }
 
 impl MyCamera {
+    const TRANSITION_TIME: Duration = Duration::from_millis(500);
+    const TRANSITION_SIGMOID_K: f64 = 5.0;
+    const OVERHEAD_DIST: f64 = 5e+8;
+
     pub fn new(dx_px: f64) -> Self {
         let fov = std::f64::consts::PI / 4.0;
         let aspect = 800.0 / 600.0;
@@ -66,9 +80,9 @@ impl MyCamera {
             view: nalgebra::zero(),
             proj_view: nalgebra::zero(),
             focus: Point3::new(0.0, 0.0, 0.0),
-            dist: 1e+8,
+            dist: Self::OVERHEAD_DIST,
             min_dist: 1e+4,
-            max_dist: 1e+9,
+            max_dist: Self::OVERHEAD_DIST,
             yaw: 0.0,
             pitch: 0.0,
             min_pitch: 0.0,
@@ -100,53 +114,91 @@ impl MyCamera {
                     self.dist = transition.target_dist;
                     self.pitch = 0.0;
                     self.yaw = 0.0;
+                    self.min_dist = transition.min_dist_after_transition;
                     self.transition = None;
                 } else {
-                    // We want to interpolate between the start position and the
-                    // end position. This is a bit tricky because the end
-                    // position can be moving.
-                    //
-                    // t is in [0, 1] range.
-                    // We want to move slower at the beginning and end, so we
-                    // pass t through a function f(t).
-                    //
-                    // At time t:
-                    //   pos(t) = start * (1 - f(t)) + end * f(t)
-                    //
-                    // At last time (t-dt): let df = f(t) - f(t-dt)
-                    //   pos(t-dt) = start * (1 - f(t - dt)) + end * f(t - dt)
-                    //             = start * (1 - f(t) + df)) + end * (f(t) - df)
-                    //             = start * (1 - f(t)) + end * f(t) + df * (start - end)
-                    //             = pos(t) + df * (start - end)
-                    //
-                    //   pos(t) = pos(t-dt) + df * (end - start)
+                    let last_t = transition.last_t;
+                    let t = (now - transition.start_time).as_secs_f64()
+                        / (transition.target_time - transition.start_time).as_secs_f64();
+                    assert!(last_t <= t);
 
-                    // Interpolate exponentially.
-                    let t = (now - transition.last_update_time).as_secs_f64()
-                        / (transition.target_time - transition.last_update_time).as_secs_f64();
-                    let t = 1.0 - (0.003_f64).powf(t);
-                    self.focus += (transition.target_focus - self.focus) * t;
-                    self.dist += (transition.target_dist - self.dist) * t;
-                    self.pitch -= self.pitch * t;
-                    self.yaw -= self.yaw * t;
-                    transition.last_update_time = now;
+                    if t < transition.dist_to_intermediate.t_end {
+                        self.dist = transition.dist_to_intermediate.interpolate(
+                            transition.mid_dist,
+                            self.dist,
+                            last_t,
+                            t,
+                        );
+                    } else {
+                        self.dist = transition.dist_from_intermediate.interpolate(
+                            transition.target_dist,
+                            self.dist,
+                            last_t,
+                            t,
+                        );
+                    }
+                    self.focus = transition.focus_interp.interpolate(
+                        transition.target_focus,
+                        self.focus,
+                        last_t,
+                        t,
+                    );
+                    self.pitch = transition
+                        .angles_interp
+                        .interpolate(0.0, self.pitch, last_t, t);
+                    self.yaw = transition
+                        .angles_interp
+                        .interpolate(0.0, self.yaw, last_t, t);
+
+                    ////let f = Self::interpolate(t, 0.5);
+                    ////let df = f - transition.last_interpolation_factor;
+                    ////let reldf = df / (1.0 - transition.last_interpolation_factor);
+
+                    //// Interpolate exponentially.
+                    ////let t = (now - transition.last_update_time).as_secs_f64()
+                    ////    / (transition.target_time - transition.last_update_time).as_secs_f64();
+                    ////let t = 1.0 - (0.003_f64).powf(t);
+                    //if transition.target_dist > self.dist {
+                    //    self.focus += reldf(0.8) * (transition.target_focus - self.focus);
+                    //    self.dist += reldf(0.2) * (transition.target_dist - self.dist);
+                    //} else {
+                    //    self.focus += reldf(0.2) * (transition.target_focus - self.focus);
+                    //    self.dist += reldf(0.8) * (transition.target_dist - self.dist);
+                    //}
+                    //self.pitch -= reldf(0.5) * self.pitch;
+                    //self.yaw -= reldf(0.5) * self.yaw;
+                    transition.last_t = t;
                 }
+                self.calc_matrices();
             }
         }
-        self.calc_matrices();
     }
 
-    const TRANSITION_TIME: Duration = Duration::from_nanos(250_000_000);
-
     pub fn transition_to(&mut self, focus: Point3<f64>, dist: f64, min_dist: f64) {
-        self.min_dist = min_dist as f64;
+        // Calculate a distance from which both bodies would be visible (in their current positions).
+        // We will first zoom out to that distance.
+        let mut mid_dist = 4.0 * (self.focus - focus).norm();
+        mid_dist = mid_dist.max(self.dist).max(dist);
+        let mut t_mid = 0.0;
+        if mid_dist > self.dist {
+            t_mid = (mid_dist - self.dist) / (2.0 * mid_dist - self.dist - dist);
+        }
 
+        let k = Self::TRANSITION_SIGMOID_K;
         let now = Instant::now();
         self.transition = Some(TransitionState {
             target_time: now + Self::TRANSITION_TIME,
             target_focus: focus,
             target_dist: dist,
-            last_update_time: now,
+            mid_dist,
+            min_dist_after_transition: min_dist as f64,
+            start_time: now,
+            last_t: 0.0,
+
+            dist_to_intermediate: interpolate::Params::with_range(k, 0.0, t_mid),
+            dist_from_intermediate: interpolate::Params::with_range(k, t_mid, 1.0),
+            focus_interp: interpolate::Params::with_range(k, t_mid * 0.7, 1.0),
+            angles_interp: interpolate::Params::new(k),
         })
     }
 
@@ -197,10 +249,15 @@ impl MyCamera {
     const PITCH_STEP: f64 = 0.005;
 
     fn handle_scroll(&mut self, off: f32) {
-        self.dist_scale_next_frame = Some(Self::SCROLL_STEP.powf(off as f64));
+        if self.transition.is_none() {
+            self.dist_scale_next_frame = Some(Self::SCROLL_STEP.powf(off as f64));
+        }
     }
 
     fn handle_rotation(&mut self, dpos: Vector2<f64>) {
+        if self.transition.is_some() {
+            return;
+        }
         self.yaw += dpos.x * Self::YAW_STEP;
         // Keep yaw in the -PI to PI range, so that the trivial interpolation
         // works when the camera transitions to yaw = 0.

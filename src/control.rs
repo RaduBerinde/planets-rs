@@ -37,13 +37,13 @@ impl ControlEvent {
         None
     }
 
-    pub fn description(&self) -> &'static str {
-        match self {
-            ControlEvent::CycleCamera => "Cycle camera focus",
-            ControlEvent::StartStop => "Start/stop simulation",
-            ControlEvent::Faster => "Increase the simulation speed",
-            ControlEvent::Slower => "Decrease the simulation speed",
-            ControlEvent::Reverse => "Reverse simulation",
-        }
-    }
+    // pub fn description(&self) -> &'static str {
+    //     match self {
+    //         ControlEvent::CycleCamera => "Cycle camera focus",
+    //         ControlEvent::StartStop => "Start/stop simulation",
+    //         ControlEvent::Faster => "Increase the simulation speed",
+    //         ControlEvent::Slower => "Decrease the simulation speed",
+    //         ControlEvent::Reverse => "Reverse simulation",
+    //     }
+    // }
 }

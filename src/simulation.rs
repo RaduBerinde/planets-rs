@@ -6,7 +6,7 @@ use std::{
 use self::seconds::Seconds;
 
 use super::{body::BodyProperties, choice::Choice, control::ControlEvent};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use kiss3d::nalgebra::{Point3, Vector3};
 
 mod seconds;

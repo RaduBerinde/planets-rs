@@ -34,6 +34,7 @@ use std::{cell::RefCell, rc::Rc};
 
 mod camera;
 mod grid;
+mod interpolate;
 mod lines_material;
 mod shadow_material;
 mod trail;

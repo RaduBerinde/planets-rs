@@ -53,6 +53,7 @@ impl<T: Copy> Choice<T> {
     }
 
     #[must_use]
+    #[allow(dead_code)]
     pub fn circular_prev(&self) -> Self {
         self.make((self.index + self.choices.len() - 1) % self.choices.len())
     }
