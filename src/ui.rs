@@ -1,6 +1,6 @@
 use conrod::position::{Align, Direction, Padding, Position, Relative};
 use kiss3d::{
-    conrod::{self, widget, Positionable, Sizeable, Widget},
+    conrod::{self, widget, Colorable, Labelable, Positionable, Sizeable, Widget},
     widget_ids,
     window::Window,
 };
@@ -17,6 +17,10 @@ impl Ui {
 
     pub fn new(window: &mut Window) -> Self {
         let conrod_ui = window.conrod_ui_mut();
+        //let font_id = conrod_ui
+        //    .fonts
+        //    .insert_from_file("media/unifont-14.0.04.ttf")
+        //    .expect("cannot load font");
         conrod_ui.theme = Self::theme();
 
         let ids = Ids::new(conrod_ui.widget_id_generator());
@@ -45,6 +49,23 @@ impl Ui {
             .center_justify()
             .line_spacing(5.0)
             .set(ids.timestamp, ui);
+
+        for _press in widget::Button::new()
+            .align_middle_x_of(ids.canvas)
+            .down(50.0)
+            .w_h(50.0, 50.0)
+            .set(ids.play_pause, ui)
+        {
+            println!("WOO");
+        }
+
+        widget::Polygon::centred_fill([[0.0, -14.0], [0.0, 14.0], [20.0, 0.0]])
+            .color(conrod::color::BLACK)
+            //.middle_of(ids.play_pause)
+            .align_middle_y_of(ids.play_pause)
+            .x_position_relative_to(ids.play_pause, Relative::Scalar(2.0))
+            .graphics_for(ids.play_pause)
+            .set(ids.play_pause_shape, ui);
     }
 
     fn theme() -> conrod::Theme {
@@ -74,5 +95,7 @@ widget_ids! {
     struct Ids {
         canvas,
         timestamp,
+        play_pause,
+        play_pause_shape,
     }
 }
