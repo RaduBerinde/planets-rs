@@ -5,6 +5,8 @@ use kiss3d::{
     window::Window,
 };
 
+use crate::status::Status;
+
 pub struct Ui {
     ids: Ids,
 }
@@ -21,19 +23,28 @@ impl Ui {
         Self { ids }
     }
 
-    pub fn frame(&self, window: &mut Window) {
-        let mut ui = window.conrod_ui_mut().set_widgets();
+    pub fn frame(&self, window: &mut Window, status: Status) {
+        let ids = &self.ids;
+        let ui = &mut window.conrod_ui_mut().set_widgets();
 
         // `Canvas` is a widget that provides some basic functionality for laying out children widgets.
         // By default, its size is the size of the window. We'll use this as a background for the
         // following widgets, as well as a scrollable container for the children widgets.
-        //const TITLE: &'static str = "All Widgets";
         widget::Canvas::new()
             .pad(Self::MARGIN)
             .align_right()
             .w(Self::WIDTH)
             .scroll_kids_vertically()
-            .set(self.ids.canvas, &mut ui);
+            .set(ids.canvas, ui);
+
+        let timestamp = status.sim.timestamp.format("%Y-%m-%d %H:%M UTC");
+        widget::Text::new(&timestamp.to_string())
+            .padded_w_of(ids.canvas, Self::MARGIN)
+            .mid_top_of(ids.canvas)
+            .align_middle_x_of(ids.canvas)
+            .center_justify()
+            .line_spacing(5.0)
+            .set(ids.timestamp, ui);
     }
 
     fn theme() -> conrod::Theme {
@@ -42,14 +53,14 @@ impl Ui {
             padding: Padding::none(),
             x_position: Position::Relative(Relative::Align(Align::Start), None),
             y_position: Position::Relative(Relative::Direction(Direction::Backwards, 20.0), None),
-            background_color: conrod::color::Color::Rgba(0.05, 0.05, 0.05, 0.75),
+            background_color: conrod::color::Color::Rgba(0.1, 0.1, 0.1, 0.75),
             shape_color: conrod::color::LIGHT_CHARCOAL,
-            border_color: conrod::color::Color::Rgba(0.31, 0.31, 0.29, 1.0),
+            border_color: conrod::color::Color::Rgba(0.4, 0.4, 0.4, 0.75),
             border_width: 1.0,
-            label_color: conrod::color::Color::Rgba(0.31, 0.31, 0.29, 1.0),
+            label_color: conrod::color::Color::Rgba(0.8, 0.8, 0.8, 1.0),
             font_id: None,
-            font_size_large: 26,
-            font_size_medium: 18,
+            font_size_large: 20,
+            font_size_medium: 16,
             font_size_small: 12,
             widget_styling: conrod::theme::StyleMap::default(),
             mouse_drag_threshold: 0.0,
@@ -62,6 +73,6 @@ impl Ui {
 widget_ids! {
     struct Ids {
         canvas,
-        title,
+        timestamp,
     }
 }

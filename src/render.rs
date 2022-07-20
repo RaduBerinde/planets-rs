@@ -8,6 +8,9 @@ use crate::body::Body::*;
 use crate::choice::Choice;
 use crate::control::ControlEvent;
 use crate::simulation::*;
+use crate::status::RenderStatus;
+use crate::status::Status;
+use crate::status::StatusProvider;
 use crate::ui::Ui;
 use kiss3d::camera::Camera;
 
@@ -21,7 +24,7 @@ use kiss3d::nalgebra::Vector2;
 use kiss3d::nalgebra::Vector3;
 use kiss3d::resource::MaterialManager;
 use kiss3d::resource::TextureManager;
-use kiss3d::text::Font;
+
 use kiss3d::{
     nalgebra::{Point3, Translation3},
     resource::Material,
@@ -208,7 +211,7 @@ impl Renderer {
     }
 
     // Returns false if the window should be closed.
-    pub fn frame(&mut self, window: &mut Window) -> bool {
+    pub fn frame(&mut self, window: &mut Window, status: Status) -> bool {
         self.camera
             .update_focus(self.abs_position(self.camera_focus.get()));
 
@@ -219,13 +222,13 @@ impl Renderer {
                 self.camera.dist() * 4.0,
             );
 
-        window.draw_text(
-            &self.snapshot.timestamp.to_string(),
-            &Point2::new(20.0, 10.0),
-            60.0,
-            &Font::default(),
-            &Point3::new(0.8, 0.8, 0.8),
-        );
+        // window.draw_text(
+        //     &self.snapshot.timestamp.to_string(),
+        //     &Point2::new(20.0, 10.0),
+        //     60.0,
+        //     &Font::default(),
+        //     &Point3::new(0.8, 0.8, 0.8),
+        // );
 
         // Sun.
         self.sun_node
@@ -272,7 +275,7 @@ impl Renderer {
             self.render_body_hint(&self.camera, window, body);
         }
 
-        self.ui.frame(window);
+        self.ui.frame(window, status);
         window.render_with_camera(&mut self.camera)
     }
 
@@ -357,9 +360,7 @@ impl Renderer {
             _ => {}
         }
     }
-}
 
-impl Renderer {
     pub fn render_position(&self, body: Body) -> Point3<f32> {
         nalgebra::convert(self.abs_position(body) - self.camera.focus().coords)
     }
@@ -394,5 +395,13 @@ impl Renderer {
             ),
         };
         Isometry3::from_parts(translation, rotation)
+    }
+}
+
+impl StatusProvider<RenderStatus> for &Renderer {
+    fn status(&self) -> RenderStatus {
+        RenderStatus {
+            camera_focus: self.camera_focus.clone(),
+        }
     }
 }

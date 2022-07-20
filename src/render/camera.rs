@@ -100,6 +100,7 @@ impl MyCamera {
         if let Some(scale) = self.dist_scale_next_frame {
             self.dist = (self.dist * scale).clamp(self.min_dist, self.max_dist);
             self.dist_scale_next_frame = None;
+            self.calc_matrices();
         }
 
         match self.transition.as_mut() {

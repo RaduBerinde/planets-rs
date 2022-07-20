@@ -3,6 +3,8 @@ use std::{
     time::Instant,
 };
 
+use crate::status::{SimulationStatus, StatusProvider};
+
 use self::seconds::Seconds;
 
 use super::{body::BodyProperties, choice::Choice, control::ControlEvent};
@@ -231,4 +233,18 @@ fn gacc(pos: &Point3<f64>, other_pos: &Point3<f64>, other_mass: f64) -> Vector3<
     // and m -> km conversion for the result.
     let amount = G * other_mass / vec.norm_squared() * 1e-9;
     return vec.normalize() * amount;
+}
+
+impl StatusProvider<SimulationStatus> for &Simulation {
+    fn status(&self) -> SimulationStatus {
+        SimulationStatus {
+            timestamp: self.current.timestamp,
+            running: match self.state {
+                State::Stopped => true,
+                _ => false,
+            },
+            speed: self.speed.clone(),
+            reverse: self.reverse,
+        }
+    }
 }

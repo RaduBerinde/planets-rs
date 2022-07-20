@@ -1,5 +1,6 @@
 use std::{ops::Deref, rc::Rc};
 
+#[derive(Clone)]
 pub struct Choice<T: Copy> {
     choices: Rc<Vec<T>>,
     index: usize,
