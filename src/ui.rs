@@ -47,7 +47,7 @@ impl Ui {
 
         let timestamp = status.sim.timestamp.format("%Y-%m-%d %H:%M UTC");
         widget::Text::new(&timestamp.to_string())
-            .font_size(14)
+            .font_size(16)
             .padded_w_of(ids.canvas, Self::MARGIN)
             .mid_top_of(ids.canvas)
             .align_middle_x_of(ids.canvas)
@@ -57,9 +57,10 @@ impl Ui {
 
         if !status.sim.running {
             // Play button.
-            for _press in widget::Button::new()
+            for _ in widget::Button::new()
+                .color(ui.theme().label_color.with_luminance(0.1))
                 .align_middle_x_of(ids.canvas)
-                .down(50.0)
+                .down(20.0)
                 .w_h(50.0, 50.0)
                 .set(ids.start, ui)
             {
@@ -67,16 +68,18 @@ impl Ui {
             }
 
             widget::Polygon::centred_fill([[0.0, -14.0], [0.0, 14.0], [20.0, 0.0]])
-                .color(color::BLACK)
+                //.color(color::LIGHT_CHARCOAL)
+                //.color(ui.theme().label_color)
                 .align_middle_y_of(ids.start)
                 .x_relative_to(ids.start, 2.0)
                 .graphics_for(ids.start)
                 .set(ids.start_shape, ui);
         } else {
             // Pause button.
-            for _press in widget::Button::new()
+            for _ in widget::Button::new()
+                .color(ui.theme().label_color.with_luminance(0.1))
                 .align_middle_x_of(ids.canvas)
-                .down(50.0)
+                .down(20.0)
                 .w_h(50.0, 50.0)
                 .set(ids.pause, ui)
             {
@@ -84,14 +87,14 @@ impl Ui {
             }
 
             widget::Rectangle::fill([8.0, 28.0])
-                .color(color::BLACK)
+                //.color(color::BLACK)
                 .align_middle_y_of(ids.pause)
                 .x_relative_to(ids.pause, -6.0)
                 .graphics_for(ids.pause)
                 .set(ids.pause_shape_1, ui);
 
             widget::Rectangle::fill([8.0, 28.0])
-                .color(color::BLACK)
+                //.color(color::BLACK)
                 .align_middle_y_of(ids.pause)
                 .x_relative_to(ids.pause, 6.0)
                 .graphics_for(ids.pause)
@@ -103,7 +106,7 @@ impl Ui {
         widget::Text::new("Simulation speed (time/wall-sec):")
             .font_size(11)
             .mid_left_of(ids.canvas)
-            .down(50.0)
+            .down(30.0)
             .left_justify()
             .set(ids.speed_title, ui);
 
@@ -115,7 +118,11 @@ impl Ui {
             for _ in widget::Toggle::new(is_set)
                 .label(&duration_short_string(d))
                 .label_font_size(10)
-                .label_color(if is_set { color::BLACK } else { color::WHITE })
+                .label_color(if is_set {
+                    color::BLACK
+                } else {
+                    ui.theme.label_color
+                })
                 .label_y(Relative::Scalar(1.0))
                 .w_h(width + 1.0, 24.0)
                 .x_relative_to(
@@ -139,7 +146,7 @@ impl Ui {
             x_position: Position::Relative(Relative::Align(Align::Start), None),
             y_position: Position::Relative(Relative::Direction(Direction::Backwards, 20.0), None),
             background_color: color::Color::Rgba(0.1, 0.1, 0.1, 0.75),
-            shape_color: color::LIGHT_CHARCOAL,
+            shape_color: color::Color::Rgba(0.8, 0.8, 0.8, 1.0),
             border_color: color::Color::Rgba(0.4, 0.4, 0.4, 0.75),
             border_width: 1.0,
             label_color: color::Color::Rgba(0.8, 0.8, 0.8, 1.0),
