@@ -1,6 +1,6 @@
 use crate::render::Renderer;
 use control::ControlEvent;
-use kiss3d::window::Window;
+use kiss3d::window::{CanvasSetup, NumSamples, Window};
 use simulation::{Simulation, Snapshot};
 use status::Status;
 
@@ -13,7 +13,11 @@ mod status;
 mod ui;
 
 fn main() {
-    let mut window = Window::new_with_size("planets-rs", 1200, 800);
+    let setup = CanvasSetup {
+        vsync: true,
+        samples: NumSamples::Four,
+    };
+    let mut window = Window::new_with_setup("planets-rs", 1200, 800, setup);
     let mut sim = Simulation::new(Snapshot::simple());
     let mut r = Renderer::new(&sim.current, &mut window);
 

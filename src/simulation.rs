@@ -161,6 +161,7 @@ impl Simulation {
     pub fn handle_event(&mut self, ev: &ControlEvent) {
         match ev {
             ControlEvent::StartStop => self.toggle_start(),
+            ControlEvent::SetSpeed(s) => self.adjust_speed(s.clone()),
             ControlEvent::Faster => self.adjust_speed(self.speed.next()),
             ControlEvent::Slower => self.adjust_speed(self.speed.prev()),
             ControlEvent::Reverse => self.reverse(),

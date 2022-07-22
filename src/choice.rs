@@ -19,6 +19,7 @@ impl<T: Copy> ChoiceSet<T> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn by_value(&self, value: T) -> Choice<T>
     where
         T: PartialEq,
@@ -48,6 +49,10 @@ pub struct Choice<T: Copy> {
 impl<T: Copy> Choice<T> {
     pub fn get(&self) -> T {
         self.choice_set[self.index]
+    }
+
+    pub fn choice_set(&self) -> ChoiceSet<T> {
+        self.choice_set.clone()
     }
 
     #[must_use]
