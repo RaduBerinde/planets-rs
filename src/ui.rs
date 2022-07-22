@@ -19,11 +19,12 @@ impl Ui {
 
     pub fn new(window: &mut Window) -> Self {
         let conrod_ui = window.conrod_ui_mut();
-        //let font_id = conrod_ui
-        //    .fonts
-        //    .insert_from_file("media/unifont-14.0.04.ttf")
-        //    .expect("cannot load font");
-        conrod_ui.theme = Self::theme();
+        let font_id = conrod_ui
+            .fonts
+            //.insert_from_file("media/UbuntuMono-R.ttf")
+            .insert_from_file("media/NotoSansMono-CondensedMedium.ttf")
+            .expect("cannot load font");
+        conrod_ui.theme = Self::theme(Some(font_id));
 
         let ids = Ids::new(conrod_ui.widget_id_generator());
         Self { ids }
@@ -99,8 +100,8 @@ impl Ui {
 
         // ===== Simulation speed =====
 
-        widget::Text::new("Simulation speed (time per wall sec):")
-            .font_size(12)
+        widget::Text::new("Simulation speed (time/wall-sec):")
+            .font_size(11)
             .mid_left_of(ids.canvas)
             .down(50.0)
             .left_justify()
@@ -115,12 +116,13 @@ impl Ui {
                 .label(&duration_short_string(d))
                 .label_font_size(10)
                 .label_color(if is_set { color::BLACK } else { color::WHITE })
-                .w_h(width + 1.0, 22.0)
+                .label_y(Relative::Scalar(1.0))
+                .w_h(width + 1.0, 24.0)
                 .x_relative_to(
                     ids.canvas,
                     -Self::WIDTH * 0.5 + Self::MARGIN + (0.5 + i as f64) * width,
                 )
-                .down_from(ids.speed_title, 10.0)
+                .down_from(ids.speed_title, 8.0)
                 .set(id, ui)
             {
                 events.push(ControlEvent::SetSpeed(choices.by_index(i)));
@@ -130,7 +132,7 @@ impl Ui {
         events
     }
 
-    fn theme() -> conrod::Theme {
+    fn theme(font_id: Option<conrod::text::font::Id>) -> conrod::Theme {
         conrod::Theme {
             name: "Theme".to_string(),
             padding: Padding::none(),
@@ -141,7 +143,7 @@ impl Ui {
             border_color: color::Color::Rgba(0.4, 0.4, 0.4, 0.75),
             border_width: 1.0,
             label_color: color::Color::Rgba(0.8, 0.8, 0.8, 1.0),
-            font_id: None,
+            font_id,
             font_size_large: 14,
             font_size_medium: 12,
             font_size_small: 10,
