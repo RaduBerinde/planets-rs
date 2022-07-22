@@ -1,6 +1,6 @@
 use conrod::position::{Align, Direction, Padding, Position, Relative};
 use kiss3d::{
-    conrod::{self, widget, Colorable, Labelable, Positionable, Sizeable, Widget},
+    conrod::{self, widget, Colorable, Positionable, Sizeable, Widget},
     widget_ids,
     window::Window,
 };

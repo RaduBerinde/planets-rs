@@ -115,7 +115,16 @@ mod test {
         let c = c.circular_prev();
         assert_eq!(c.get(), 4);
 
+        // Test by_index.
+        let c = cs.by_index(3);
+        assert_eq!(c.get(), 4);
+
+        // Test by_value.
+        let c = cs.by_value(2);
+        assert_eq!(c.get(), 2);
+
         // Test deref trait.
+        let c = cs.by_value(4);
         assert_eq!(c.trailing_zeros(), 2);
     }
 }
