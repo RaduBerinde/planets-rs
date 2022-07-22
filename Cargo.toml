@@ -16,3 +16,23 @@ chrono = "0.4"
 lazy_static = "1.4.0"
 #delegate = "0.7.0"
 datadriven = "0.6.0"
+
+#[profile.dev.package.kiss3d]
+#opt-level = 3
+#debug-assertions = false
+#overflow-checks = false
+
+[profile.dev.package.image]
+opt-level = 3
+debug-assertions = false
+overflow-checks = false
+
+[profile.dev.package.jpeg-decoder]
+opt-level = 3
+debug-assertions = false
+overflow-checks = false
+
+[profile.dev.package.png]
+opt-level = 3
+debug-assertions = false
+overflow-checks = false
