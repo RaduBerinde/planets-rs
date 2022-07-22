@@ -1,42 +1,62 @@
 use std::{ops::Deref, rc::Rc};
 
-#[derive(Clone)]
-pub struct Choice<T: Copy> {
-    choices: Rc<Vec<T>>,
-    index: usize,
-}
+#[derive(Clone, PartialEq, Eq)]
+pub struct ChoiceSet<T: Copy>(Rc<Vec<T>>);
 
-impl<T: Copy> Choice<T> {
+impl<T: Copy> ChoiceSet<T> {
     pub fn new<'a, I>(vals: I) -> Self
     where
         I: IntoIterator<Item = T>,
     {
-        Choice::new_with_initial(vals, 0)
+        Self(Rc::new(vals.into_iter().collect()))
     }
 
-    pub fn new_with_initial<I>(vals: I, index: usize) -> Self
-    where
-        I: IntoIterator<Item = T>,
-    {
-        let choices: Vec<T> = vals.into_iter().collect();
-        assert!(index < choices.len());
-        Self {
-            choices: Rc::new(choices),
-            index,
+    pub fn by_index(&self, index: usize) -> Choice<T> {
+        assert!(index < self.0.len());
+        Choice {
+            choice_set: self.clone(),
+            index: index,
         }
     }
 
+    pub fn by_value(&self, value: T) -> Choice<T>
+    where
+        T: PartialEq,
+    {
+        let index = self
+            .iter()
+            .position(|v| *v == value)
+            .expect("value not in choice set");
+
+        self.by_index(index)
+    }
+}
+
+impl<T: Copy> Deref for ChoiceSet<T> {
+    type Target = Vec<T>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct Choice<T: Copy> {
+    choice_set: ChoiceSet<T>,
+    index: usize,
+}
+
+impl<T: Copy> Choice<T> {
     pub fn get(&self) -> T {
-        self.choices[self.index]
+        self.choice_set[self.index]
     }
 
     #[must_use]
     pub fn next(&self) -> Self {
         let mut index = self.index;
-        if index + 1 < self.choices.len() {
+        if index + 1 < self.choice_set.len() {
             index += 1;
         }
-        self.make(index)
+        self.choice_set.by_index(index)
     }
 
     #[must_use]
@@ -45,42 +65,38 @@ impl<T: Copy> Choice<T> {
         if index > 0 {
             index -= 1
         }
-        self.make(index)
+        self.choice_set.by_index(index)
     }
 
     #[must_use]
     pub fn circular_next(&self) -> Self {
-        self.make((self.index + 1) % self.choices.len())
+        let index = (self.index + 1) % self.choice_set.len();
+        self.choice_set.by_index(index)
     }
 
     #[must_use]
     #[allow(dead_code)]
     pub fn circular_prev(&self) -> Self {
-        self.make((self.index + self.choices.len() - 1) % self.choices.len())
-    }
-
-    fn make(&self, new_index: usize) -> Self {
-        Self {
-            choices: Rc::clone(&self.choices),
-            index: new_index,
-        }
+        let index = (self.index + self.choice_set.len() - 1) % self.choice_set.len();
+        self.choice_set.by_index(index)
     }
 }
 
 impl<T: Copy> Deref for Choice<T> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
-        &self.choices[self.index]
+        &self.choice_set[self.index]
     }
 }
 
 #[cfg(test)]
 mod test {
-    use super::Choice;
+    use super::*;
 
     #[test]
     fn choice() {
-        let c: Choice<i32> = Choice::new([1, 2, 3, 4]);
+        let cs: ChoiceSet<i32> = ChoiceSet::new([1, 2, 3, 4]);
+        let c: Choice<i32> = cs.by_index(0);
         assert_eq!(c.get(), 1);
         let c = c.next();
         assert_eq!(c.get(), 2);

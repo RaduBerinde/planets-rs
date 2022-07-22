@@ -5,7 +5,7 @@ use kiss3d::{
     window::Window,
 };
 
-use crate::status::Status;
+use crate::{control::ControlEvent, status::Status};
 
 pub struct Ui {
     ids: Ids,
@@ -27,7 +27,8 @@ impl Ui {
         Self { ids }
     }
 
-    pub fn frame(&self, window: &mut Window, status: Status) {
+    pub fn frame(&self, window: &mut Window, status: Status) -> Vec<ControlEvent> {
+        let mut events = Vec::<ControlEvent>::new();
         let ids = &self.ids;
         let ui = &mut window.conrod_ui_mut().set_widgets();
 
@@ -50,22 +51,50 @@ impl Ui {
             .line_spacing(5.0)
             .set(ids.timestamp, ui);
 
-        for _press in widget::Button::new()
-            .align_middle_x_of(ids.canvas)
-            .down(50.0)
-            .w_h(50.0, 50.0)
-            .set(ids.play_pause, ui)
-        {
-            println!("WOO");
+        if !status.sim.running {
+            // Play button.
+            for _press in widget::Button::new()
+                .align_middle_x_of(ids.canvas)
+                .down(50.0)
+                .w_h(50.0, 50.0)
+                .set(ids.start, ui)
+            {
+                events.push(ControlEvent::StartStop)
+            }
+
+            widget::Polygon::centred_fill([[0.0, -14.0], [0.0, 14.0], [20.0, 0.0]])
+                .color(conrod::color::BLACK)
+                .align_middle_y_of(ids.start)
+                .x_position_relative_to(ids.start, Relative::Scalar(2.0))
+                .graphics_for(ids.start)
+                .set(ids.start_shape, ui);
+        } else {
+            // Pause button.
+            for _press in widget::Button::new()
+                .align_middle_x_of(ids.canvas)
+                .down(50.0)
+                .w_h(50.0, 50.0)
+                .set(ids.pause, ui)
+            {
+                events.push(ControlEvent::StartStop)
+            }
+
+            widget::Rectangle::fill([8.0, 28.0])
+                .color(conrod::color::BLACK)
+                .align_middle_y_of(ids.pause)
+                .x_position_relative_to(ids.pause, Relative::Scalar(-6.0))
+                .graphics_for(ids.pause)
+                .set(ids.pause_shape_1, ui);
+
+            widget::Rectangle::fill([8.0, 28.0])
+                .color(conrod::color::BLACK)
+                .align_middle_y_of(ids.pause)
+                .x_position_relative_to(ids.pause, Relative::Scalar(6.0))
+                .graphics_for(ids.pause)
+                .set(ids.pause_shape_2, ui);
         }
 
-        widget::Polygon::centred_fill([[0.0, -14.0], [0.0, 14.0], [20.0, 0.0]])
-            .color(conrod::color::BLACK)
-            //.middle_of(ids.play_pause)
-            .align_middle_y_of(ids.play_pause)
-            .x_position_relative_to(ids.play_pause, Relative::Scalar(2.0))
-            .graphics_for(ids.play_pause)
-            .set(ids.play_pause_shape, ui);
+        events
     }
 
     fn theme() -> conrod::Theme {
@@ -95,7 +124,12 @@ widget_ids! {
     struct Ids {
         canvas,
         timestamp,
-        play_pause,
-        play_pause_shape,
+        start,
+        start_shape,
+        revstart,
+        revstart_shape,
+        pause,
+        pause_shape_1,
+        pause_shape_2,
     }
 }

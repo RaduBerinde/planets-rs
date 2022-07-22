@@ -3,7 +3,10 @@ use std::{
     time::Instant,
 };
 
-use crate::status::{SimulationStatus, StatusProvider};
+use crate::{
+    choice::ChoiceSet,
+    status::{SimulationStatus, StatusProvider},
+};
 
 use self::seconds::Seconds;
 
@@ -49,7 +52,7 @@ impl Simulation {
 
         Simulation {
             current: start,
-            speed: Choice::new_with_initial(speeds, 2),
+            speed: ChoiceSet::new(speeds).by_index(2),
             state: State::Stopped,
             reverse: false,
         }
@@ -155,7 +158,7 @@ impl Simulation {
         s.reverse = !s.reverse;
     }
 
-    pub fn handle_event(&mut self, ev: ControlEvent) {
+    pub fn handle_event(&mut self, ev: &ControlEvent) {
         match ev {
             ControlEvent::StartStop => self.toggle_start(),
             ControlEvent::Faster => self.adjust_speed(self.speed.next()),
@@ -239,10 +242,7 @@ impl StatusProvider<SimulationStatus> for &Simulation {
     fn status(&self) -> SimulationStatus {
         SimulationStatus {
             timestamp: self.current.timestamp,
-            running: match self.state {
-                State::Stopped => true,
-                _ => false,
-            },
+            running: matches!(self.state, State::Running(..)),
             speed: self.speed.clone(),
             reverse: self.reverse,
         }

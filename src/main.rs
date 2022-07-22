@@ -17,12 +17,16 @@ fn main() {
     let mut sim = Simulation::new(Snapshot::simple());
     let mut r = Renderer::new(&sim.current, &mut window);
 
-    while r.frame(&mut window, Status::get(&sim, &r)) {
-        for mut event in window.events().iter() {
-            if let Some(ev) = ControlEvent::from_window_event(&mut event) {
-                r.handle_event(ev);
-                sim.handle_event(ev);
+    loop {
+        let status = Status::get(&sim, &r);
+        let events = r.frame(&mut window, status);
+
+        for event in events {
+            if matches!(event, ControlEvent::Exit) {
+                return;
             }
+            r.handle_event(&event);
+            sim.handle_event(&event);
         }
         sim.advance();
         r.set_snapshot(&sim.current);

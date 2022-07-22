@@ -1,35 +1,39 @@
-use enum_map::{enum_map, Enum, EnumMap};
-use kiss3d::event::{Action, Event, Key, WindowEvent};
-use lazy_static::lazy_static;
+use std::collections::HashMap;
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Enum)]
+use kiss3d::event::{Action, Event, Key, WindowEvent};
+
+use crate::choice::Choice;
+
+#[derive(Clone, PartialEq, Eq)]
 pub enum ControlEvent {
     CycleCamera,
     StartStop,
     Faster,
     Slower,
+    SetSpeed(Choice<chrono::Duration>),
     Reverse,
+    Exit,
 }
 
-lazy_static! {
-    static ref KEY_MAP: EnumMap<ControlEvent, Key> = enum_map! {
-        ControlEvent::CycleCamera => Key::Tab,
-        ControlEvent::StartStop => Key::Space,
-        ControlEvent::Faster => Key::Equals,
-        ControlEvent::Slower => Key::Minus,
-        ControlEvent::Reverse => Key::R,
-    };
+thread_local! {
+    static KEY_MAP: HashMap<Key, ControlEvent> = HashMap::from([
+        (Key::Tab, ControlEvent::CycleCamera),
+        (Key::Space, ControlEvent::StartStop),
+        (Key::Equals, ControlEvent::Faster),
+        (Key::Minus, ControlEvent::Slower),
+        (Key::R, ControlEvent::Reverse),
+        (Key::Escape, ControlEvent::Exit),
+    ]);
 }
 
 impl ControlEvent {
     pub fn from_window_event(event: &mut Event) -> Option<ControlEvent> {
         match event.value {
             WindowEvent::Key(key, Action::Press, _) => {
-                for (ev, &ev_key) in KEY_MAP.iter() {
-                    if key == ev_key {
-                        event.inhibited = true;
-                        return Some(ev);
-                    }
+                let result = KEY_MAP.with(|km| km.get(&key).map(|ev| ev.clone()));
+                if let Some(control_event) = result {
+                    event.inhibited = true;
+                    return Some(control_event.clone());
                 }
             }
             _ => (),

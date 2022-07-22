@@ -6,6 +6,7 @@ use self::trail::Trail;
 use crate::body::Body;
 use crate::body::Body::*;
 use crate::choice::Choice;
+use crate::choice::ChoiceSet;
 use crate::control::ControlEvent;
 use crate::simulation::*;
 use crate::status::RenderStatus;
@@ -104,6 +105,7 @@ impl Renderer {
         // Init the Sun. The sun uses the default material.
         let mut sun_node = window.add_sphere(Sun.radius());
         sun_node.set_color(1.5, 1.5, 1.5);
+        println!("Loading sun texture");
         sun_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
 
         // Init the Earth. The earth uses our custom shadow material.
@@ -112,6 +114,7 @@ impl Renderer {
             m.get("shadow").unwrap()
         }));
 
+        println!("Loading earth textures");
         let earth_lighting = Rc::new(RefCell::new(BodyLightingData {
             day_color: Point3::new(1.2, 1.2, 1.2),
             day_texture: Some(TextureManager::get_global_manager(|tm| {
@@ -156,6 +159,7 @@ impl Renderer {
             m.get("shadow").unwrap()
         }));
 
+        println!("Loading moon textures");
         let moon_lighting = Rc::new(RefCell::new(BodyLightingData {
             day_color: Point3::new(1.0, 1.0, 1.0),
             day_texture: Some(TextureManager::get_global_manager(|tm| {
@@ -187,7 +191,7 @@ impl Renderer {
 
         let mut renderer = Renderer {
             camera,
-            camera_focus: Choice::new([Earth, Moon, Sun]),
+            camera_focus: ChoiceSet::new([Earth, Moon, Sun]).by_index(0),
             grid: Grid::new(window, 20),
             sun_node,
             earth_node,
@@ -203,6 +207,8 @@ impl Renderer {
 
         renderer.transition_camera(renderer.camera_focus.get());
 
+        println!("Rendering initialized");
+
         renderer
     }
 
@@ -211,7 +217,7 @@ impl Renderer {
     }
 
     // Returns false if the window should be closed.
-    pub fn frame(&mut self, window: &mut Window, status: Status) -> bool {
+    pub fn frame(&mut self, window: &mut Window, status: Status) -> Vec<ControlEvent> {
         self.camera
             .update_focus(self.abs_position(self.camera_focus.get()));
 
@@ -275,8 +281,16 @@ impl Renderer {
             self.render_body_hint(&self.camera, window, body);
         }
 
-        self.ui.frame(window, status);
-        window.render_with_camera(&mut self.camera)
+        let mut events = self.ui.frame(window, status);
+        if !window.render_with_camera(&mut self.camera) {
+            return vec![ControlEvent::Exit];
+        }
+        for mut event in window.events().iter() {
+            if let Some(ev) = ControlEvent::from_window_event(&mut event) {
+                events.push(ev);
+            }
+        }
+        events
     }
 
     fn render_body_hint(&self, camera: &MyCamera, window: &mut Window, body: Body) {
@@ -347,7 +361,7 @@ impl Renderer {
         self.camera.transition_to(focus, dist, radius * 1.5);
     }
 
-    pub fn handle_event(&mut self, event: ControlEvent) {
+    pub fn handle_event(&mut self, event: &ControlEvent) {
         match event {
             ControlEvent::CycleCamera => {
                 self.camera_focus = self.camera_focus.circular_next();
