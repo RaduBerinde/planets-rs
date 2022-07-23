@@ -367,6 +367,10 @@ impl Renderer {
                 self.camera_focus = self.camera_focus.circular_next();
                 self.transition_camera(self.camera_focus.get());
             }
+            ControlEvent::SetCamera(camera_focus) => {
+                self.camera_focus = camera_focus.clone();
+                self.transition_camera(self.camera_focus.get());
+            }
             ControlEvent::Reverse => {
                 self.earth_trail.reset();
                 self.moon_trail.reset();

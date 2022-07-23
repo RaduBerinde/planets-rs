@@ -2,11 +2,12 @@ use std::collections::HashMap;
 
 use kiss3d::event::{Action, Event, Key, WindowEvent};
 
-use crate::choice::Choice;
+use crate::{body::Body, choice::Choice};
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum ControlEvent {
     CycleCamera,
+    SetCamera(Choice<Body>),
     StartStop,
     Faster,
     Slower,

@@ -51,6 +51,10 @@ impl<T: Copy> Choice<T> {
         self.choice_set[self.index]
     }
 
+    pub fn index(&self) -> usize {
+        self.index
+    }
+
     pub fn choice_set(&self) -> ChoiceSet<T> {
         self.choice_set.clone()
     }
