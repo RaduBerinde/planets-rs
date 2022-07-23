@@ -23,7 +23,7 @@ fn main() {
 
     loop {
         let status = Status::get(&sim, &r);
-        let events = r.frame(&mut window, status);
+        let events = r.frame(&mut window, status, sim.should_blur_earth());
 
         for event in events {
             if matches!(event, ControlEvent::Exit) {

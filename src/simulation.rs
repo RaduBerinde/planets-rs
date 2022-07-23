@@ -120,6 +120,10 @@ impl Simulation {
         }
     }
 
+    pub fn should_blur_earth(&self) -> bool {
+        matches!(self.state, State::Running(..)) && self.speed.num_days() > 5
+    }
+
     fn step(&mut self, dt: Seconds) {
         let s = &self.current;
         let new_timestamp = s.timestamp + dt.to_duration();
@@ -171,7 +175,7 @@ impl Simulation {
 
     fn stopped(&mut self) -> StoppedRef {
         let needs_restart = match self.state {
-            State::Running(_) => {
+            State::Running(..) => {
                 self.stop();
                 true
             }

@@ -24,6 +24,7 @@ use kiss3d::nalgebra::UnitQuaternion;
 use kiss3d::nalgebra::Vector2;
 use kiss3d::nalgebra::Vector3;
 use kiss3d::resource::MaterialManager;
+use kiss3d::resource::Texture;
 use kiss3d::resource::TextureManager;
 
 use kiss3d::{
@@ -53,6 +54,10 @@ pub struct Renderer {
 
     earth_node: SceneNode,
     earth_lighting: Rc<RefCell<BodyLightingData>>,
+    earth_day_texture: Rc<Texture>,
+    earth_night_texture: Rc<Texture>,
+    earth_day_blurred_texture: Rc<Texture>,
+    earth_night_blurred_texture: Rc<Texture>,
     earth_axis: Option<SceneNode>,
     earth_trail: Trail,
 
@@ -115,15 +120,29 @@ impl Renderer {
         }));
 
         println!("Loading earth textures");
+        let earth_day_texture = TextureManager::get_global_manager(|tm| {
+            tm.add(Path::new("./media/2k_earth_daymap.jpg"), "earth-day")
+        });
+        let earth_night_texture = TextureManager::get_global_manager(|tm| {
+            tm.add(Path::new("./media/2k_earth_nightmap.jpg"), "earth-night")
+        });
+        let earth_day_blurred_texture = TextureManager::get_global_manager(|tm| {
+            tm.add(
+                Path::new("./media/2k_earth_daymap_blurred.jpg"),
+                "earth-day-blurred",
+            )
+        });
+        let earth_night_blurred_texture = TextureManager::get_global_manager(|tm| {
+            tm.add(
+                Path::new("./media/2k_earth_nightmap_blurred.jpg"),
+                "earth-night-blurred",
+            )
+        });
         let earth_lighting = Rc::new(RefCell::new(BodyLightingData {
             day_color: Point3::new(1.2, 1.2, 1.2),
-            day_texture: Some(TextureManager::get_global_manager(|tm| {
-                tm.add(Path::new("./media/2k_earth_daymap.jpg"), "earth-day")
-            })),
+            day_texture: None, // will be set each frame.
             night_color: Point3::new(0.9, 0.9, 0.9),
-            night_texture: Some(TextureManager::get_global_manager(|tm| {
-                tm.add(Path::new("./media/2k_earth_nightmap.jpg"), "earth-night")
-            })),
+            night_texture: None, // will be set each frame.
             ..BodyLightingData::default()
         }));
         earth_node
@@ -196,6 +215,10 @@ impl Renderer {
             sun_node,
             earth_node,
             earth_lighting,
+            earth_day_texture,
+            earth_night_texture,
+            earth_day_blurred_texture,
+            earth_night_blurred_texture,
             earth_axis: earth_axis,
             earth_trail,
             moon_node,
@@ -217,24 +240,19 @@ impl Renderer {
     }
 
     // Returns false if the window should be closed.
-    pub fn frame(&mut self, window: &mut Window, status: Status) -> Vec<ControlEvent> {
+    pub fn frame(
+        &mut self,
+        window: &mut Window,
+        status: Status,
+        blur_earth: bool,
+    ) -> Vec<ControlEvent> {
         self.camera
             .update_focus(self.abs_position(self.camera_focus.get()));
 
-        self.grid
-            //.update(self.camera.arcball.at(), self.camera.arcball.dist() * 4.0);
-            .update(
-                Point3::new(0.0, 0.0, 0.0), /*self.camera.focus()*/
-                self.camera.dist() * 4.0,
-            );
-
-        // window.draw_text(
-        //     &self.snapshot.timestamp.to_string(),
-        //     &Point2::new(20.0, 10.0),
-        //     60.0,
-        //     &Font::default(),
-        //     &Point3::new(0.8, 0.8, 0.8),
-        // );
+        self.grid.update(
+            Point3::new(0.0, 0.0, 0.0), /*self.camera.focus()*/
+            self.camera.dist() * 4.0,
+        );
 
         // Sun.
         self.sun_node
@@ -255,11 +273,19 @@ impl Renderer {
         {
             let mut earth_lighting = self.earth_lighting.borrow_mut();
 
+            if !blur_earth {
+                earth_lighting.day_texture = Some(Rc::clone(&self.earth_day_texture));
+                earth_lighting.night_texture = Some(Rc::clone(&self.earth_night_texture));
+            } else {
+                earth_lighting.day_texture = Some(Rc::clone(&self.earth_day_blurred_texture));
+                earth_lighting.night_texture = Some(Rc::clone(&self.earth_night_blurred_texture));
+            }
             earth_lighting.light_pos = self.render_position(Sun);
             earth_lighting.light_radius = Sun.radius();
             earth_lighting.occluder_pos = self.render_position(Moon);
             earth_lighting.occluder_radius = Moon.radius();
         }
+
         self.earth_trail
             .frame(self.abs_position(Earth), self.camera.focus());
 
