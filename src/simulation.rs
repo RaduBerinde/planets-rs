@@ -103,25 +103,28 @@ impl Simulation {
                     Seconds::from(self.current.timestamp - target_timestamp)
                 };
 
-                let mut step = Simulation::DEFAULT_STEP
+                let target_step = Simulation::DEFAULT_STEP
                     .at_least(simulation_speed_per_sec / Simulation::MAX_STEPS_PER_WALL_SECOND)
                     .at_most(simulation_speed_per_sec / Simulation::MIN_STEPS_PER_WALL_SECOND);
 
-                let num_steps =
-                    ((simulation_advance / step) as u32).min(Simulation::MAX_STEPS_PER_FRAME);
-                if self.reverse {
-                    step = Seconds(-step.0);
-                }
-                for _ in 0..num_steps {
-                    self.step(step);
-                }
+                let num_steps = (simulation_advance / target_step).ceil() as u32;
+                self.advance_by(simulation_advance, num_steps);
             }
             _ => {}
         }
     }
 
+    fn advance_by(&mut self, simulation_advance: Seconds, num_steps: u32) {
+        assert!(simulation_advance.0 >= 0.0);
+        let num_steps = num_steps.min(Simulation::MAX_STEPS_PER_FRAME);
+        let step = simulation_advance / num_steps as f64 * if self.reverse { -1.0 } else { 1.0 };
+        for _ in 0..num_steps {
+            self.step(step);
+        }
+    }
+
     pub fn should_blur_earth(&self) -> bool {
-        matches!(self.state, State::Running(..)) && self.speed.num_days() > 5
+        self.is_running() && self.speed.num_days() > 5
     }
 
     fn step(&mut self, dt: Seconds) {
@@ -169,22 +172,33 @@ impl Simulation {
             ControlEvent::Faster => self.adjust_speed(self.speed.next()),
             ControlEvent::Slower => self.adjust_speed(self.speed.prev()),
             ControlEvent::Reverse => self.reverse(),
+            ControlEvent::JumpForward | ControlEvent::JumpBack => {
+                if !self.is_running() {
+                    let old_reverse = self.reverse;
+                    self.reverse = matches!(ev, ControlEvent::JumpBack);
+                    let simulation_speed_per_sec = Seconds::from(self.speed.get());
+                    self.advance_by(simulation_speed_per_sec, Self::MAX_STEPS_PER_FRAME);
+                    self.reverse = old_reverse;
+                }
+            }
             _ => {}
         }
     }
 
-    fn stopped(&mut self) -> StoppedRef {
-        let needs_restart = match self.state {
-            State::Running(..) => {
-                self.stop();
-                true
-            }
+    fn is_running(&self) -> bool {
+        matches!(self.state, State::Running(..))
+    }
 
-            State::Stopped => false,
-        };
+    // stopped is used to stop the simulation and later restart it (if it was
+    // running).
+    fn stopped(&mut self) -> StoppedRef {
+        let was_running = self.is_running();
+        if was_running {
+            self.stop();
+        }
         StoppedRef {
             sim: self,
-            needs_restart: needs_restart,
+            needs_restart: was_running,
         }
     }
 }
@@ -247,7 +261,7 @@ impl StatusProvider<SimulationStatus> for &Simulation {
     fn status(&self) -> SimulationStatus {
         SimulationStatus {
             timestamp: self.current.timestamp,
-            running: matches!(self.state, State::Running(..)),
+            running: self.is_running(),
             speed: self.speed.clone(),
             reverse: self.reverse,
         }

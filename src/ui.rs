@@ -81,12 +81,52 @@ impl Ui {
             }
 
             widget::Polygon::centred_fill([[0.0, -12.0], [0.0, 12.0], [16.0, 0.0]])
-                //.color(color::LIGHT_CHARCOAL)
-                //.color(ui.theme().label_color)
                 .align_middle_y_of(self.ids.play_pause)
                 .x_relative_to(self.ids.play_pause, 2.0)
                 .graphics_for(self.ids.play_pause)
                 .set(self.ids.start_shape, ui);
+
+            // Back button.
+            for _ in widget::Button::new()
+                .color(ui.theme().label_color.with_luminance(0.1))
+                .left_from(self.ids.play_pause, 16.0)
+                .w_h(40.0, 40.0)
+                .set(self.ids.jump_back, ui)
+            {
+                events.push(ControlEvent::JumpBack)
+            }
+            widget::Polygon::centred_fill([[11.0, -12.0], [11.0, 12.0], [0.0, 0.0]])
+                .align_middle_y_of(self.ids.jump_back)
+                .x_relative_to(self.ids.jump_back, 2.0)
+                .graphics_for(self.ids.jump_back)
+                .set(self.ids.jump_back_shape_1, ui);
+
+            widget::RoundedRectangle::fill([4.0, 23.0], 2.0)
+                .align_middle_y_of(self.ids.jump_back)
+                .x_relative_to(self.ids.jump_back, -5.0)
+                .graphics_for(self.ids.jump_back)
+                .set(self.ids.jump_back_shape_2, ui);
+
+            // Forward button.
+            for _ in widget::Button::new()
+                .color(ui.theme().label_color.with_luminance(0.1))
+                .right_from(self.ids.play_pause, 16.0)
+                .w_h(40.0, 40.0)
+                .set(self.ids.jump_forward, ui)
+            {
+                events.push(ControlEvent::JumpForward)
+            }
+            widget::Polygon::centred_fill([[0.0, -12.0], [0.0, 12.0], [11.0, 0.0]])
+                .align_middle_y_of(self.ids.jump_forward)
+                .x_relative_to(self.ids.jump_forward, -2.0)
+                .graphics_for(self.ids.jump_forward)
+                .set(self.ids.jump_forward_shape_1, ui);
+
+            widget::RoundedRectangle::fill([4.0, 23.0], 2.0)
+                .align_middle_y_of(self.ids.jump_forward)
+                .x_relative_to(self.ids.jump_forward, 5.0)
+                .graphics_for(self.ids.jump_forward)
+                .set(self.ids.jump_forward_shape_2, ui);
         } else {
             // Pause button.
             for _ in widget::Button::new()
@@ -99,13 +139,13 @@ impl Ui {
                 events.push(ControlEvent::StartStop)
             }
 
-            widget::Rectangle::fill([7.0, 23.0])
+            widget::RoundedRectangle::fill([6.0, 23.0], 2.0)
                 .align_middle_y_of(self.ids.pause)
                 .x_relative_to(self.ids.pause, -5.0)
                 .graphics_for(self.ids.pause)
                 .set(self.ids.pause_shape_1, ui);
 
-            widget::Rectangle::fill([7.0, 23.0])
+            widget::RoundedRectangle::fill([6.0, 23.0], 2.0)
                 .align_middle_y_of(self.ids.pause)
                 .x_relative_to(self.ids.pause, 5.0)
                 .graphics_for(self.ids.pause)
@@ -235,6 +275,12 @@ widget_ids! {
         canvas,
         timestamp,
         play_pause,
+        jump_back,
+        jump_back_shape_1,
+        jump_back_shape_2,
+        jump_forward,
+        jump_forward_shape_1,
+        jump_forward_shape_2,
         start_shape,
         revstart,
         revstart_shape,

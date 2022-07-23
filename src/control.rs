@@ -9,6 +9,8 @@ pub enum ControlEvent {
     CycleCamera,
     SetCamera(Choice<Body>),
     StartStop,
+    JumpForward,
+    JumpBack,
     Faster,
     Slower,
     SetSpeed(Choice<chrono::Duration>),
@@ -23,6 +25,8 @@ thread_local! {
         (Key::Equals, ControlEvent::Faster),
         (Key::Minus, ControlEvent::Slower),
         (Key::R, ControlEvent::Reverse),
+        (Key::Left, ControlEvent::JumpBack),
+        (Key::Right, ControlEvent::JumpForward),
         (Key::Escape, ControlEvent::Exit),
         (Key::Q, ControlEvent::Exit),
     ]);
