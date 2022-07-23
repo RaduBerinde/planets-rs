@@ -205,7 +205,7 @@ impl Renderer {
             earth_night_texture,
             earth_day_blurred_texture,
             earth_night_blurred_texture,
-            earth_axis: earth_axis,
+            earth_axis,
             earth_trail,
             moon_node,
             moon_lighting,

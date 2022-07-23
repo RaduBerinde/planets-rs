@@ -34,12 +34,13 @@ thread_local! {
 
 impl ControlEvent {
     pub fn from_window_event(event: &mut Event) -> Option<ControlEvent> {
+        #[allow(clippy::single_match)]
         match event.value {
             WindowEvent::Key(key, Action::Press, _) => {
-                let result = KEY_MAP.with(|km| km.get(&key).map(|ev| ev.clone()));
+                let result = KEY_MAP.with(|km| km.get(&key).cloned());
                 if let Some(control_event) = result {
                     event.inhibited = true;
-                    return Some(control_event.clone());
+                    return Some(control_event);
                 }
             }
             _ => (),

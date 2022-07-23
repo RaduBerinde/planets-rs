@@ -5,10 +5,10 @@ pub struct Seconds(pub f64);
 
 impl Seconds {
     pub fn at_least(self, other: Self) -> Self {
-        return Seconds(self.0.max(other.0));
+        Seconds(self.0.max(other.0))
     }
     pub fn at_most(self, other: Self) -> Self {
-        return Seconds(self.0.min(other.0));
+        Seconds(self.0.min(other.0))
     }
 
     pub fn to_duration(self) -> chrono::Duration {

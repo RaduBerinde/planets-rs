@@ -11,11 +11,7 @@ impl Params {
     }
 
     pub fn with_range(k: f64, t_start: f64, t_end: f64) -> Self {
-        Self {
-            k,
-            t_start: t_start,
-            t_end: t_end,
-        }
+        Self { k, t_start, t_end }
     }
 
     // t_func is a sigmoid rescaling function for t. The larger k is, the slower

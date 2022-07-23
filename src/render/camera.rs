@@ -76,7 +76,7 @@ impl MyCamera {
 
         let mut res = Self {
             projection: Perspective3::new(aspect, fov, znear, zfar),
-            dx_px: dx_px,
+            dx_px,
             proj: nalgebra::zero(),
             view: nalgebra::zero(),
             proj_view: nalgebra::zero(),

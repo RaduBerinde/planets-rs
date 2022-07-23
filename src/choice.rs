@@ -4,7 +4,7 @@ use std::{ops::Deref, rc::Rc};
 pub struct ChoiceSet<T: Copy>(Rc<Vec<T>>);
 
 impl<T: Copy> ChoiceSet<T> {
-    pub fn new<'a, I>(vals: I) -> Self
+    pub fn new<I>(vals: I) -> Self
     where
         I: IntoIterator<Item = T>,
     {
@@ -15,7 +15,7 @@ impl<T: Copy> ChoiceSet<T> {
         assert!(index < self.0.len());
         Choice {
             choice_set: self.clone(),
-            index: index,
+            index,
         }
     }
 

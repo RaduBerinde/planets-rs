@@ -81,33 +81,30 @@ impl Simulation {
     const MAX_STEPS_PER_FRAME: u32 = 1000;
 
     pub fn advance(&mut self) {
-        match &self.state {
-            State::Running(start_info) => {
-                let simulation_speed_per_sec = Seconds::from(self.speed.get());
+        if let State::Running(start_info) = &self.state {
+            let simulation_speed_per_sec = Seconds::from(self.speed.get());
 
-                // Wall time elapsed since start().
-                let elapsed = Seconds::from(start_info.instant.elapsed());
-                assert!(elapsed.0 >= 0.0);
+            // Wall time elapsed since start().
+            let elapsed = Seconds::from(start_info.instant.elapsed());
+            assert!(elapsed.0 >= 0.0);
 
-                // Simulation time elapsed since start().
-                let simulation_elapsed = simulation_speed_per_sec * elapsed.0;
+            // Simulation time elapsed since start().
+            let simulation_elapsed = simulation_speed_per_sec * elapsed.0;
 
-                let simulation_advance = if !self.reverse {
-                    let target_timestamp = start_info.timestamp + simulation_elapsed.to_duration();
-                    Seconds::from(target_timestamp - self.current.timestamp)
-                } else {
-                    let target_timestamp = start_info.timestamp - simulation_elapsed.to_duration();
-                    Seconds::from(self.current.timestamp - target_timestamp)
-                };
+            let simulation_advance = if !self.reverse {
+                let target_timestamp = start_info.timestamp + simulation_elapsed.to_duration();
+                Seconds::from(target_timestamp - self.current.timestamp)
+            } else {
+                let target_timestamp = start_info.timestamp - simulation_elapsed.to_duration();
+                Seconds::from(self.current.timestamp - target_timestamp)
+            };
 
-                let target_step = Simulation::DEFAULT_STEP
-                    .at_least(simulation_speed_per_sec / Simulation::MAX_STEPS_PER_WALL_SECOND)
-                    .at_most(simulation_speed_per_sec / Simulation::MIN_STEPS_PER_WALL_SECOND);
+            let target_step = Simulation::DEFAULT_STEP
+                .at_least(simulation_speed_per_sec / Simulation::MAX_STEPS_PER_WALL_SECOND)
+                .at_most(simulation_speed_per_sec / Simulation::MIN_STEPS_PER_WALL_SECOND);
 
-                let num_steps = (simulation_advance / target_step).ceil() as u32;
-                self.advance_by(simulation_advance, num_steps);
-            }
-            _ => {}
+            let num_steps = (simulation_advance / target_step).ceil() as u32;
+            self.advance_by(simulation_advance, num_steps);
         }
     }
 
@@ -126,8 +123,8 @@ impl Simulation {
         let dt = dt.0;
 
         // We use velocity Verlet integration:
-        //  x(t+dt) = x(t) + v(t)dt + a(t)dt^2/2
-        //  v(t+dt) = v(t) + ((a(t) + a(t+dt))dt/2
+        //   x(t+dt) = x(t) + v(t)dt + a(t)dt^2/2
+        //   v(t+dt) = v(t) + ((a(t) + a(t+dt))dt/2
 
         let (earth_acc, moon_acc) = gacc_earth_and_moon(&s.earth_position, &s.moon_position);
 
@@ -255,5 +252,5 @@ fn gacc(pos: &Point3<f64>, other_pos: &Point3<f64>, other_mass: f64) -> Vector3<
     // The 1e-9 adjustment is km^2 -> m^2 conversion for the denominator
     // and m -> km conversion for the result.
     let amount = G * other_mass / vec.norm_squared() * 1e-9;
-    return vec.normalize() * amount;
+    vec.normalize() * amount
 }

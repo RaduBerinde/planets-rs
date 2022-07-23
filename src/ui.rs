@@ -199,6 +199,7 @@ impl Ui {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn choice_buttons<T: Copy>(
         &self,
         ui: &mut UiCell,
@@ -241,7 +242,7 @@ impl Ui {
                 .down_from(title_id, 8.0)
                 .set(id, ui)
             {
-                result = result.or(Some(choices.by_index(i)));
+                result = Some(choices.by_index(i));
             }
         }
         result

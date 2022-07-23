@@ -133,12 +133,12 @@ impl Material for ShadowMaterial {
         ctxt.active_texture(Context::TEXTURE0);
         ctxt.bind_texture(
             Context::TEXTURE_2D,
-            lighting.day_texture.as_ref().map(Rc::borrow).as_deref(),
+            lighting.day_texture.as_ref().map(Rc::borrow),
         );
         ctxt.active_texture(Context::TEXTURE1);
         ctxt.bind_texture(
             Context::TEXTURE_2D,
-            lighting.night_texture.as_ref().map(Rc::borrow).as_deref(),
+            lighting.night_texture.as_ref().map(Rc::borrow),
         );
 
         self.day_color.upload(&lighting.day_color);
