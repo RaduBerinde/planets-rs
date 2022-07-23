@@ -15,7 +15,7 @@ mod ui;
 fn main() {
     let setup = CanvasSetup {
         vsync: true,
-        samples: NumSamples::Four,
+        samples: NumSamples::Zero,
     };
     let mut window = Window::new_with_setup("planets-rs", 1200, 800, setup);
     let mut sim = Simulation::new(Snapshot::simple());
