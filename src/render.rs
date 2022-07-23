@@ -74,21 +74,6 @@ const SHOW_EARTH_AXIS: bool = true;
 
 impl Renderer {
     pub fn new(snapshot: &Snapshot, window: &mut Window) -> Self {
-        //let mut camera = ArcBall::new_with_frustrum(
-        //    std::f32::consts::PI / 4.0,
-        //    0.001,
-        //    10240.0,
-        //    Point3::new(0.0, 0.0, 5000.0),
-        //    Point3::origin(),
-        //);
-        //camera.rebind_drag_button(Some(MouseButton::Button1));
-        //camera.rebind_rotate_button(Some(MouseButton::Button2));
-        //camera.rebind_reset_key(None);
-        //camera.set_dist_step(0.99);
-
-        //camera.set_min_dist(1e-6);
-        //camera.set_max_dist(1e+6);
-
         window.set_light(Light::StickToCamera);
 
         // Init materials.
@@ -336,42 +321,37 @@ impl Renderer {
             return;
         }
 
-        let scale = nalgebra::convert::<_, Vector2<f32>>(window.size())
-            * (0.5 / window.scale_factor() as f32);
-        let point = projected.coords.xy().component_mul(&scale);
+        let scale = 0.5 / window.scale_factor() as f32;
+        let point = Point2::new(
+            projected.x * window.width() as f32 * scale,
+            projected.y * window.height() as f32 * scale,
+        );
+
         let color = Point3::new(
             body.props().color.0,
             body.props().color.1,
             body.props().color.2,
         );
 
+        let mut draw_line = |angle: f32| {
+            const START: f32 = 6.0;
+            const END: f32 = 14.0;
+            let rad = angle.to_radians();
+            let axis = Vector2::new(rad.cos(), rad.sin());
+
+            window.draw_planar_line(&(point + axis * START), &(point + axis * END), &color);
+        };
+
         if body == Sun || body == Earth {
-            const DELTA: f32 = 12.0;
-            window.draw_planar_line(
-                &Point2::new(point.x, point.y - DELTA),
-                &Point2::new(point.x, point.y + DELTA),
-                &color,
-            );
-
-            window.draw_planar_line(
-                &Point2::new(point.x - DELTA, point.y),
-                &Point2::new(point.x + DELTA, point.y),
-                &color,
-            );
+            for a in [0, 90, 180, 270] {
+                draw_line(a as f32);
+            }
         }
-        if body == Sun || body == Moon {
-            const DELTA: f32 = 8.5;
-            window.draw_planar_line(
-                &Point2::new(point.x - DELTA, point.y - DELTA),
-                &Point2::new(point.x + DELTA, point.y + DELTA),
-                &color,
-            );
 
-            window.draw_planar_line(
-                &Point2::new(point.x - DELTA, point.y + DELTA),
-                &Point2::new(point.x + DELTA, point.y - DELTA),
-                &color,
-            );
+        if body == Sun || body == Moon {
+            for a in [0, 90, 180, 270] {
+                draw_line((a + 45) as f32);
+            }
         }
     }
 
