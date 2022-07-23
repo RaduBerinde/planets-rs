@@ -7,7 +7,7 @@ use kiss3d::{
     window::Window,
 };
 
-use super::lines_material::{LinesData};
+use super::lines_material::LinesData;
 
 pub struct Grid {
     node: SceneNode,
@@ -85,24 +85,6 @@ impl Grid {
                 edges.push(Point2::new(idx, idx + 1));
             }
         }
-
-        //for i in -self.num_steps..=self.num_steps {
-        //    for j in -self.num_steps..=self.num_steps {
-        //        let d = i as f32 * step;
-        //        let color = if i == 0 { self.axis_color } else { self.color };
-        //        window.draw_line(
-        //            &(origin + Vector3::new(d, -size, 0.0)),
-        //            &(origin + Vector3::new(d, size, 0.0)),
-        //            &color,
-        //        );
-
-        //        window.draw_line(
-        //            &(origin + Vector3::new(-size, d, 0.0)),
-        //            &(origin + Vector3::new(size, d, 0.0)),
-        //            &color,
-        //        );
-        //    }
-        //}
 
         node.data_mut()
             .get_object_mut()

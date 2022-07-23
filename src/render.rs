@@ -75,6 +75,7 @@ const SHOW_EARTH_AXIS: bool = true;
 impl Renderer {
     pub fn new(snapshot: &Snapshot, window: &mut Window) -> Self {
         window.set_light(Light::StickToCamera);
+        window.set_line_width(2.0);
 
         // Init materials.
         MaterialManager::get_global_manager(|m| {
