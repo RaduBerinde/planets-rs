@@ -10,8 +10,8 @@ use crate::choice::ChoiceSet;
 use crate::control::ControlEvent;
 use crate::simulation::*;
 use crate::status::RenderStatus;
+use crate::status::SimulationStatus;
 use crate::status::Status;
-use crate::status::StatusProvider;
 use crate::ui::Ui;
 use kiss3d::camera::Camera;
 
@@ -229,8 +229,7 @@ impl Renderer {
     pub fn frame(
         &mut self,
         window: &mut Window,
-        status: Status,
-        blur_earth: bool,
+        sim_status: SimulationStatus,
     ) -> Vec<ControlEvent> {
         self.camera
             .update_focus(self.abs_position(self.camera_focus.get()));
@@ -259,6 +258,7 @@ impl Renderer {
         {
             let mut earth_lighting = self.earth_lighting.borrow_mut();
 
+            let blur_earth = sim_status.running && sim_status.speed.num_days() > 5;
             if !blur_earth {
                 earth_lighting.day_texture = Some(Rc::clone(&self.earth_day_texture));
                 earth_lighting.night_texture = Some(Rc::clone(&self.earth_night_texture));
@@ -293,6 +293,12 @@ impl Renderer {
             self.render_body_hint(&self.camera, window, body);
         }
 
+        let status = Status {
+            sim: sim_status,
+            render: RenderStatus {
+                camera_focus: self.camera_focus.clone(),
+            },
+        };
         let mut events = self.ui.frame(window, status);
         if !window.render_with_camera(&mut self.camera) {
             return vec![ControlEvent::Exit];
@@ -419,13 +425,5 @@ impl Renderer {
             ),
         };
         Isometry3::from_parts(translation, rotation)
-    }
-}
-
-impl StatusProvider<RenderStatus> for &Renderer {
-    fn status(&self) -> RenderStatus {
-        RenderStatus {
-            camera_focus: self.camera_focus.clone(),
-        }
     }
 }

@@ -18,19 +18,3 @@ pub struct SimulationStatus {
 pub struct RenderStatus {
     pub camera_focus: Choice<Body>,
 }
-
-impl Status {
-    pub fn get(
-        sim_provider: impl StatusProvider<SimulationStatus>,
-        render_provider: impl StatusProvider<RenderStatus>,
-    ) -> Self {
-        Self {
-            sim: sim_provider.status(),
-            render: render_provider.status(),
-        }
-    }
-}
-
-pub trait StatusProvider<T> {
-    fn status(&self) -> T;
-}

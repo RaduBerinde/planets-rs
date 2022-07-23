@@ -2,7 +2,6 @@ use crate::render::Renderer;
 use control::ControlEvent;
 use kiss3d::window::{CanvasSetup, NumSamples, Window};
 use simulation::{Simulation, Snapshot};
-use status::Status;
 
 mod body;
 mod choice;
@@ -22,8 +21,7 @@ fn main() {
     let mut r = Renderer::new(&sim.current, &mut window);
 
     loop {
-        let status = Status::get(&sim, &r);
-        let events = r.frame(&mut window, status, sim.should_blur_earth());
+        let events = r.frame(&mut window, sim.status());
 
         for event in events {
             if matches!(event, ControlEvent::Exit) {

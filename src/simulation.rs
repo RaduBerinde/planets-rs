@@ -3,10 +3,7 @@ use std::{
     time::Instant,
 };
 
-use crate::{
-    choice::ChoiceSet,
-    status::{SimulationStatus, StatusProvider},
-};
+use crate::{choice::ChoiceSet, status::SimulationStatus};
 
 use self::seconds::Seconds;
 
@@ -123,10 +120,6 @@ impl Simulation {
         }
     }
 
-    pub fn should_blur_earth(&self) -> bool {
-        self.is_running() && self.speed.num_days() > 5
-    }
-
     fn step(&mut self, dt: Seconds) {
         let s = &self.current;
         let new_timestamp = s.timestamp + dt.to_duration();
@@ -201,6 +194,14 @@ impl Simulation {
             needs_restart: was_running,
         }
     }
+    pub fn status(&self) -> SimulationStatus {
+        SimulationStatus {
+            timestamp: self.current.timestamp,
+            running: self.is_running(),
+            speed: self.speed.clone(),
+            reverse: self.reverse,
+        }
+    }
 }
 
 // StoppedRef is used internally to temporarily stop the simulation to make changes.
@@ -255,15 +256,4 @@ fn gacc(pos: &Point3<f64>, other_pos: &Point3<f64>, other_mass: f64) -> Vector3<
     // and m -> km conversion for the result.
     let amount = G * other_mass / vec.norm_squared() * 1e-9;
     return vec.normalize() * amount;
-}
-
-impl StatusProvider<SimulationStatus> for &Simulation {
-    fn status(&self) -> SimulationStatus {
-        SimulationStatus {
-            timestamp: self.current.timestamp,
-            running: self.is_running(),
-            speed: self.speed.clone(),
-            reverse: self.reverse,
-        }
-    }
 }
