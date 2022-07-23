@@ -74,18 +74,18 @@ impl Ui {
                 .color(ui.theme().label_color.with_luminance(0.1))
                 .align_middle_x_of(self.ids.canvas)
                 .down(20.0)
-                .w_h(50.0, 50.0)
-                .set(self.ids.start, ui)
+                .w_h(40.0, 40.0)
+                .set(self.ids.play_pause, ui)
             {
                 events.push(ControlEvent::StartStop)
             }
 
-            widget::Polygon::centred_fill([[0.0, -14.0], [0.0, 14.0], [20.0, 0.0]])
+            widget::Polygon::centred_fill([[0.0, -12.0], [0.0, 12.0], [16.0, 0.0]])
                 //.color(color::LIGHT_CHARCOAL)
                 //.color(ui.theme().label_color)
-                .align_middle_y_of(self.ids.start)
-                .x_relative_to(self.ids.start, 2.0)
-                .graphics_for(self.ids.start)
+                .align_middle_y_of(self.ids.play_pause)
+                .x_relative_to(self.ids.play_pause, 2.0)
+                .graphics_for(self.ids.play_pause)
                 .set(self.ids.start_shape, ui);
         } else {
             // Pause button.
@@ -93,25 +93,41 @@ impl Ui {
                 .color(ui.theme().label_color.with_luminance(0.1))
                 .align_middle_x_of(self.ids.canvas)
                 .down(20.0)
-                .w_h(50.0, 50.0)
+                .w_h(40.0, 40.0)
                 .set(self.ids.pause, ui)
             {
                 events.push(ControlEvent::StartStop)
             }
 
-            widget::Rectangle::fill([8.0, 28.0])
-                //.color(color::BLACK)
+            widget::Rectangle::fill([7.0, 23.0])
                 .align_middle_y_of(self.ids.pause)
-                .x_relative_to(self.ids.pause, -6.0)
+                .x_relative_to(self.ids.pause, -5.0)
                 .graphics_for(self.ids.pause)
                 .set(self.ids.pause_shape_1, ui);
 
-            widget::Rectangle::fill([8.0, 28.0])
-                //.color(color::BLACK)
+            widget::Rectangle::fill([7.0, 23.0])
                 .align_middle_y_of(self.ids.pause)
-                .x_relative_to(self.ids.pause, 6.0)
+                .x_relative_to(self.ids.pause, 5.0)
                 .graphics_for(self.ids.pause)
                 .set(self.ids.pause_shape_2, ui);
+
+            // Reverse toggle.
+            for _ in widget::Toggle::new(status.sim.reverse)
+                .label("Reverse")
+                .label_font_size(12)
+                .label_color(if status.sim.reverse {
+                    color::BLACK
+                } else {
+                    ui.theme.label_color
+                })
+                .label_y(Relative::Scalar(2.0))
+                .w_h(60.0, 40.0)
+                .align_middle_y_of(self.ids.pause)
+                .x_relative_to(self.ids.canvas, Self::WIDTH * 0.5 - Self::MARGIN - 30.0)
+                .set(self.ids.reverse, ui)
+            {
+                events.push(ControlEvent::Reverse);
+            }
         }
     }
 
@@ -120,6 +136,7 @@ impl Ui {
             ui,
             self.ids.speed_title,
             "Simulation speed (time/wall-sec)",
+            self.ids.play_pause,
             26.0,
             &status.sim.speed,
             |&d| duration_short_string(&d),
@@ -129,12 +146,11 @@ impl Ui {
     }
 
     fn camera_focus(&self, ui: &mut UiCell, status: &Status, events: &mut Vec<ControlEvent>) {
-        // ===== Simulation speed =====
-
         if let Some(new_camera) = self.choice_buttons(
             ui,
             self.ids.camera_title,
             "Camera",
+            self.ids.speed_1,
             30.0,
             &status.render.camera_focus,
             |&d| d.props().name.to_string(),
@@ -148,6 +164,7 @@ impl Ui {
         ui: &mut UiCell,
         start_id: Id,
         title: &str,
+        down_from: Id,
         height: f64,
         choice: &Choice<T>,
         to_str: impl Fn(&T) -> String,
@@ -157,7 +174,7 @@ impl Ui {
         widget::Text::new(title)
             .font_size(12)
             .align_middle_x_of(self.ids.canvas)
-            .down(30.0)
+            .down_from(down_from, 30.0)
             .center_justify()
             .set(start_id, ui);
 
@@ -217,13 +234,14 @@ widget_ids! {
     struct Ids {
         canvas,
         timestamp,
-        start,
+        play_pause,
         start_shape,
         revstart,
         revstart_shape,
         pause,
         pause_shape_1,
         pause_shape_2,
+        reverse,
         speed_title,
         speed_1,
         speed_2,

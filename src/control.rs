@@ -24,6 +24,7 @@ thread_local! {
         (Key::Minus, ControlEvent::Slower),
         (Key::R, ControlEvent::Reverse),
         (Key::Escape, ControlEvent::Exit),
+        (Key::Q, ControlEvent::Exit),
     ]);
 }
 
