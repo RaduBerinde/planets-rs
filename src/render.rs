@@ -343,14 +343,13 @@ impl Renderer {
             window.draw_planar_line(&(point + axis * START), &(point + axis * END), &color);
         };
 
-        if body == Sun || body == Earth {
-            for a in [0, 90, 180, 270] {
+        for a in [0, 90, 180, 270] {
+            // Earth gets the vertical cross-hairs; Moon gets the diagonal; Sun
+            // gets both.
+            if body == Sun || body == Earth {
                 draw_line(a as f32);
             }
-        }
-
-        if body == Sun || body == Moon {
-            for a in [0, 90, 180, 270] {
+            if body == Sun || body == Moon {
                 draw_line((a + 45) as f32);
             }
         }

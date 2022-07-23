@@ -36,6 +36,7 @@ pub struct MyCamera {
     min_dist: f64,
     max_dist: f64,
     yaw: f64,
+    // Pitch = 0 is a top down view. Pitch = PI/2 is a side view.
     pitch: f64,
     min_pitch: f64,
     max_pitch: f64,
@@ -86,7 +87,7 @@ impl MyCamera {
             yaw: 0.0,
             pitch: 0.0,
             min_pitch: 0.0,
-            max_pitch: PI * 0.5,
+            max_pitch: PI * 0.6,
             dist_scale_next_frame: None,
             last_cursor_pos: nalgebra::zero(),
             last_framebuffer_size: Vector2::new(800, 600),
@@ -150,24 +151,6 @@ impl MyCamera {
                     self.yaw = transition
                         .angles_interp
                         .interpolate(0.0, self.yaw, last_t, t);
-
-                    ////let f = Self::interpolate(t, 0.5);
-                    ////let df = f - transition.last_interpolation_factor;
-                    ////let reldf = df / (1.0 - transition.last_interpolation_factor);
-
-                    //// Interpolate exponentially.
-                    ////let t = (now - transition.last_update_time).as_secs_f64()
-                    ////    / (transition.target_time - transition.last_update_time).as_secs_f64();
-                    ////let t = 1.0 - (0.003_f64).powf(t);
-                    //if transition.target_dist > self.dist {
-                    //    self.focus += reldf(0.8) * (transition.target_focus - self.focus);
-                    //    self.dist += reldf(0.2) * (transition.target_dist - self.dist);
-                    //} else {
-                    //    self.focus += reldf(0.2) * (transition.target_focus - self.focus);
-                    //    self.dist += reldf(0.8) * (transition.target_dist - self.dist);
-                    //}
-                    //self.pitch -= reldf(0.5) * self.pitch;
-                    //self.yaw -= reldf(0.5) * self.yaw;
                     transition.last_t = t;
                 }
                 self.calc_matrices();
@@ -238,11 +221,6 @@ impl MyCamera {
             Translation3::new(0.0, 0.0, -self.dist),
             self.rotation().inverse(),
         )
-        //let mut result = Isometry3::from_parts(Translation3::from(-self.focus), nalgebra::one());
-        //result.append_rotation_mut(&self.rotation().inverse());
-        //result.append_translation_mut(&Translation3::new(0.0, 0.0, -self.dist));
-
-        //result
     }
 
     const SCROLL_STEP: f64 = 0.99;
@@ -284,16 +262,6 @@ impl Camera for MyCamera {
                     let dpos = curr_pos - self.last_cursor_pos;
                     self.handle_rotation(dpos)
                 }
-
-                //if let Some(drag_button) = self.drag_button {
-                //    if canvas.get_mouse_button(drag_button) == Action::Press
-                //        && self.drag_modifiers.map(|m| m == modifiers).unwrap_or(true)
-                //    {
-                //        let dpos = curr_pos - self.last_cursor_pos;
-                //        let dpos_norm = dpos.component_div(&self.last_framebuffer_size);
-                //        self.handle_right_button_displacement(&dpos_norm)
-                //    }
-                //}
 
                 self.last_cursor_pos = curr_pos;
             }
