@@ -3,6 +3,7 @@ use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 use kiss3d::{
     nalgebra::{self, Point2, Point3, Point4, Vector3},
     resource::{AllocationType, MaterialManager, Mesh},
+    scene::SceneNode,
     window::Window,
 };
 
@@ -16,6 +17,7 @@ pub struct Trail {
 
     history: VecDeque<DataPoint>,
 
+    scene_node: SceneNode,
     lines_data: Rc<RefCell<LinesData>>,
 }
 
@@ -62,6 +64,7 @@ impl Trail {
             min_dist: max_length / max_points as f64,
             color,
             history: VecDeque::new(),
+            scene_node: node,
             lines_data,
         }
     }
@@ -70,7 +73,21 @@ impl Trail {
         self.history.clear();
     }
 
+    pub fn set_visible(&mut self, visible: bool) {
+        self.scene_node.set_visible(visible);
+    }
+
     pub fn frame(&mut self, p: Point3<f64>, camera_focus: Point3<f64>) {
+        let mut lines_data = self.lines_data.borrow_mut();
+        // Save the reference to allow mutable borrows of multiple struct fields.
+        let lines_data = &mut *lines_data;
+        let coords = lines_data.coords.data_mut().as_mut().unwrap();
+        let colors = lines_data.colors.data_mut().as_mut().unwrap();
+        let edges = lines_data.edges.data_mut().as_mut().unwrap();
+        coords.clear();
+        colors.clear();
+        edges.clear();
+
         if self.history.is_empty() {
             self.history.push_front(DataPoint {
                 p,
@@ -79,20 +96,13 @@ impl Trail {
             return;
         }
 
-        let mut lines_data = self.lines_data.borrow_mut();
-        let coords = lines_data.coords.data_mut().as_mut().unwrap();
-        coords.clear();
         coords.push(nalgebra::convert(p - camera_focus.coords));
         for dp in &self.history {
             coords.push(nalgebra::convert(dp.p - camera_focus.coords));
         }
 
         let dist_to_prev = (p - self.history[0].p).norm();
-
         let dist_to_alpha_scale = 1.0 / self.max_length;
-
-        let colors = lines_data.colors.data_mut().as_mut().unwrap();
-        colors.clear();
         colors.push(self.color);
         let mut dist_so_far = dist_to_prev;
         for dp in &self.history {
@@ -102,8 +112,6 @@ impl Trail {
             dist_so_far += dp.dist_to_prev;
         }
 
-        let edges = lines_data.edges.data_mut().as_mut().unwrap();
-        edges.clear();
         for i in 0..self.history.len() {
             edges.push(Point2::new(i as u16, (i + 1) as u16));
         }

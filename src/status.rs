@@ -17,4 +17,5 @@ pub struct SimulationStatus {
 
 pub struct RenderStatus {
     pub camera_focus: Choice<Body>,
+    pub show_trails: bool,
 }

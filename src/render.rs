@@ -46,7 +46,9 @@ mod trail;
 
 pub struct Renderer {
     camera: MyCamera,
+
     camera_focus: Choice<Body>,
+    show_trails: bool,
 
     grid: Grid,
 
@@ -197,6 +199,7 @@ impl Renderer {
         let mut renderer = Renderer {
             camera,
             camera_focus: ChoiceSet::new([Earth, Moon, Sun]).by_index(0),
+            show_trails: true,
             grid: Grid::new(window, 20),
             sun_node,
             earth_node,
@@ -297,6 +300,7 @@ impl Renderer {
             sim: sim_status,
             render: RenderStatus {
                 camera_focus: self.camera_focus.clone(),
+                show_trails: self.show_trails,
             },
         };
         let mut events = self.ui.frame(window, status);
@@ -385,6 +389,13 @@ impl Renderer {
             }
             ControlEvent::Reverse => {
                 self.earth_trail.reset();
+                self.moon_trail.reset();
+            }
+            ControlEvent::ToggleTrails => {
+                self.show_trails = !self.show_trails;
+                self.earth_trail.set_visible(self.show_trails);
+                self.earth_trail.reset();
+                self.moon_trail.set_visible(self.show_trails);
                 self.moon_trail.reset();
             }
             _ => {}
