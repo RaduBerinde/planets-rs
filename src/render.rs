@@ -236,7 +236,7 @@ impl Renderer {
             .update_focus(self.abs_position(self.camera_focus.get()));
 
         self.grid.update(
-            Point3::new(0.0, 0.0, 0.0), /*self.camera.focus()*/
+            Point3::new(0.0, 0.0, -self.camera.focus().z as f32),
             self.camera.dist() * 4.0,
         );
 
