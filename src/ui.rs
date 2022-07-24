@@ -1,5 +1,6 @@
 use conrod::position::{Align, Direction, Padding, Position, Relative};
 use conrod::widget::Id;
+use kiss3d::conrod::position::Place;
 use kiss3d::conrod::{color, UiCell};
 use kiss3d::{
     conrod::{self, widget, Colorable, Labelable, Positionable, Sizeable, Widget},
@@ -58,6 +59,7 @@ impl Ui {
         self.simulation_controls(ui, &status, &mut events);
         self.simulation_speed(ui, &status, &mut events);
         self.camera_focus(ui, &status, &mut events);
+        self.render_toggles(ui, &status, &mut events);
 
         events
     }
@@ -199,6 +201,18 @@ impl Ui {
         }
     }
 
+    fn render_toggles(&self, ui: &mut UiCell, status: &Status, events: &mut Vec<ControlEvent>) {
+        widget::Text::new("Show trails")
+            .font_size(12)
+            .x_place_on(self.ids.canvas, Place::End(Some(Self::MARGIN + 28.0)))
+            .down(20.0)
+            .set(self.ids.trails_text, ui);
+
+        if self.toggle_switch(ui, self.ids.trails_toggle_rect, status.render.show_trails) {
+            events.push(ControlEvent::ToggleTrails)
+        }
+    }
+
     #[allow(clippy::too_many_arguments)]
     fn choice_buttons<T: Copy>(
         &self,
@@ -246,6 +260,49 @@ impl Ui {
             }
         }
         result
+    }
+
+    // Creates a toggle switch, positioned near the right edge, vertically
+    // aligned with the previous widget. Returns true if the switch was
+    // activated.
+    fn toggle_switch(&self, ui: &mut UiCell, start_id: Id, is_set: bool) -> bool {
+        let rect_id = start_id;
+        let circle_id = Id::new(start_id.index() + 1);
+        let mut rect_color = if is_set {
+            ui.theme().shape_color
+        } else {
+            ui.theme().background_color.highlighted()
+        };
+        let input = ui.widget_input(rect_id);
+        if let Some(mouse) = input.mouse() {
+            if mouse.buttons.left().is_down() {
+                rect_color = rect_color.clicked();
+            } else {
+                rect_color = rect_color.highlighted();
+            }
+        }
+        let clicked = input.clicks().left().count() + input.taps().count() > 0;
+
+        widget::RoundedRectangle::fill([28.0, 14.0], 7.0)
+            .color(rect_color)
+            .x_relative_to(self.ids.canvas, Self::WIDTH * 0.5 - Self::MARGIN - 14.0)
+            .y_relative(-2.0)
+            //.align_middle_y()
+            .set(rect_id, ui);
+
+        widget::Circle::outline(6.0)
+            .color(color::BLACK)
+            .color(if is_set {
+                color::BLACK
+            } else {
+                color::LIGHT_CHARCOAL
+            })
+            .align_middle_y()
+            .x_relative(if is_set { 7.0 } else { -7.0 })
+            .graphics_for(rect_id)
+            .set(circle_id, ui);
+
+        clicked
     }
 
     fn theme(font_id: Option<conrod::text::font::Id>) -> conrod::Theme {
@@ -306,6 +363,9 @@ widget_ids! {
         camera_4,
         camera_5,
         camera_6,
+        trails_text,
+        trails_toggle_rect,
+        trails_toggle_circle,
     }
 }
 
