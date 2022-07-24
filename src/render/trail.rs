@@ -73,6 +73,10 @@ impl Trail {
         self.history.clear();
     }
 
+    pub fn is_visible(&self) -> bool {
+        self.scene_node.is_visible()
+    }
+
     pub fn set_visible(&mut self, visible: bool) {
         self.scene_node.set_visible(visible);
     }

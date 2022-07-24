@@ -107,4 +107,8 @@ impl Grid {
     pub fn set_visible(&mut self, visible: bool) {
         self.node.set_visible(visible);
     }
+
+    pub fn is_visible(&self) -> bool {
+        self.node.is_visible()
+    }
 }

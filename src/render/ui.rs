@@ -1,4 +1,3 @@
-
 use conrod::position::{Align, Direction, Padding, Position, Relative};
 use conrod::widget::Id;
 use kiss3d::conrod::position::Place;
@@ -244,6 +243,17 @@ impl Ui {
         ) {
             events.push(ControlEvent::ToggleTrails)
         }
+
+        if self.toggle_switch(
+            ui,
+            self.ids.ecliptic_toggle_title,
+            "Ecliptic plane",
+            ui.maybe_prev_widget().unwrap(),
+            Relative::Direction(Direction::Backwards, 20.0),
+            render_state.show_ecliptic(),
+        ) {
+            events.push(ControlEvent::ToggleEcliptic)
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -418,6 +428,9 @@ widget_ids! {
         trails_toggle_title,
         trails_toggle_rect,
         trails_toggle_circle,
+        ecliptic_toggle_title,
+        ecliptic_toggle_rect,
+        ecliptic_toggle_circle,
     }
 }
 

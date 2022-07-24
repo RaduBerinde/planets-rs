@@ -48,8 +48,6 @@ pub struct Renderer {
     camera: MyCamera,
 
     camera_focus: Choice<Body>,
-    show_trails: bool,
-    show_ecliptic: bool,
 
     grid: Grid,
 
@@ -200,8 +198,6 @@ impl Renderer {
         let mut renderer = Renderer {
             camera,
             camera_focus: ChoiceSet::new([Earth, Moon, Sun]).by_index(0),
-            show_trails: true,
-            show_ecliptic: true,
             grid: Grid::new(window, 20),
             sun_node,
             earth_node,
@@ -387,9 +383,12 @@ impl Renderer {
                 self.moon_trail.reset();
             }
             ControlEvent::ToggleTrails => {
-                self.show_trails = !self.show_trails;
-                self.earth_trail.set_visible(self.show_trails);
-                self.moon_trail.set_visible(self.show_trails);
+                let visible = !self.earth_trail.is_visible();
+                self.earth_trail.set_visible(visible);
+                self.moon_trail.set_visible(visible);
+            }
+            ControlEvent::ToggleEcliptic => {
+                self.grid.set_visible(!self.grid.is_visible());
             }
             _ => {}
         }
@@ -438,10 +437,10 @@ impl RenderState for Renderer {
     }
 
     fn show_trails(&self) -> bool {
-        self.show_trails
+        self.earth_trail.is_visible()
     }
 
     fn show_ecliptic(&self) -> bool {
-        self.show_ecliptic
+        self.grid.is_visible()
     }
 }
