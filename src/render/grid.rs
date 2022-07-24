@@ -103,4 +103,8 @@ impl Grid {
         self.node
             .set_local_translation(Translation3::new(origin.x, origin.y, origin.z));
     }
+
+    pub fn set_visible(&mut self, visible: bool) {
+        self.node.set_visible(visible);
+    }
 }

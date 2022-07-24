@@ -3,16 +3,15 @@ use self::grid::Grid;
 use self::lines_material::LinesMaterial;
 use self::shadow_material::*;
 use self::trail::Trail;
+use self::ui::Ui;
 use crate::body::Body;
 use crate::body::Body::*;
 use crate::choice::Choice;
 use crate::choice::ChoiceSet;
 use crate::control::ControlEvent;
-use crate::simulation::*;
-use crate::status::RenderStatus;
-use crate::status::SimulationStatus;
-use crate::status::Status;
-use crate::ui::Ui;
+use crate::simulation::Snapshot;
+use crate::state::RenderState;
+use crate::state::SimulationState;
 use kiss3d::camera::Camera;
 
 use kiss3d::light::Light;
@@ -43,12 +42,14 @@ mod interpolate;
 mod lines_material;
 mod shadow_material;
 mod trail;
+mod ui;
 
 pub struct Renderer {
     camera: MyCamera,
 
     camera_focus: Choice<Body>,
     show_trails: bool,
+    show_ecliptic: bool,
 
     grid: Grid,
 
@@ -200,6 +201,7 @@ impl Renderer {
             camera,
             camera_focus: ChoiceSet::new([Earth, Moon, Sun]).by_index(0),
             show_trails: true,
+            show_ecliptic: true,
             grid: Grid::new(window, 20),
             sun_node,
             earth_node,
@@ -232,7 +234,7 @@ impl Renderer {
     pub fn frame(
         &mut self,
         window: &mut Window,
-        sim_status: SimulationStatus,
+        sim_state: &dyn SimulationState,
     ) -> Vec<ControlEvent> {
         self.camera
             .update_focus(self.abs_position(self.camera_focus.get()));
@@ -261,7 +263,7 @@ impl Renderer {
         {
             let mut earth_lighting = self.earth_lighting.borrow_mut();
 
-            let blur_earth = sim_status.running && sim_status.speed.num_days() > 5;
+            let blur_earth = sim_state.is_running() && sim_state.speed().num_days() > 5;
             if !blur_earth {
                 earth_lighting.day_texture = Some(Rc::clone(&self.earth_day_texture));
                 earth_lighting.night_texture = Some(Rc::clone(&self.earth_night_texture));
@@ -296,14 +298,7 @@ impl Renderer {
             self.render_body_hint(&self.camera, window, body);
         }
 
-        let status = Status {
-            sim: sim_status,
-            render: RenderStatus {
-                camera_focus: self.camera_focus.clone(),
-                show_trails: self.show_trails,
-            },
-        };
-        let mut events = self.ui.frame(window, status);
+        let mut events = self.ui.frame(window, sim_state, &*self);
         if !window.render_with_camera(&mut self.camera) {
             return vec![ControlEvent::Exit];
         }
@@ -394,9 +389,7 @@ impl Renderer {
             ControlEvent::ToggleTrails => {
                 self.show_trails = !self.show_trails;
                 self.earth_trail.set_visible(self.show_trails);
-                self.earth_trail.reset();
                 self.moon_trail.set_visible(self.show_trails);
-                self.moon_trail.reset();
             }
             _ => {}
         }
@@ -436,5 +429,19 @@ impl Renderer {
             ),
         };
         Isometry3::from_parts(translation, rotation)
+    }
+}
+
+impl RenderState for Renderer {
+    fn camera_focus(&self) -> Choice<Body> {
+        self.camera_focus.clone()
+    }
+
+    fn show_trails(&self) -> bool {
+        self.show_trails
+    }
+
+    fn show_ecliptic(&self) -> bool {
+        self.show_ecliptic
     }
 }

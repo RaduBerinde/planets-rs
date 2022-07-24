@@ -16,6 +16,7 @@ pub enum ControlEvent {
     SetSpeed(Choice<chrono::Duration>),
     Reverse,
     ToggleTrails,
+    ToggleEcliptic,
     Exit,
 }
 
@@ -31,6 +32,7 @@ thread_local! {
         (Key::Escape, ControlEvent::Exit),
         (Key::Q, ControlEvent::Exit),
         (Key::T, ControlEvent::ToggleTrails),
+        (Key::G, ControlEvent::ToggleEcliptic),
     ]);
 }
 

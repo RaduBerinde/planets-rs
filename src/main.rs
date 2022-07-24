@@ -8,8 +8,7 @@ mod choice;
 mod control;
 mod render;
 mod simulation;
-mod status;
-mod ui;
+mod state;
 
 fn main() {
     let setup = CanvasSetup {
@@ -21,7 +20,7 @@ fn main() {
     let mut r = Renderer::new(&sim.current, &mut window);
 
     loop {
-        let events = r.frame(&mut window, sim.status());
+        let events = r.frame(&mut window, &sim);
 
         for event in events {
             if matches!(event, ControlEvent::Exit) {

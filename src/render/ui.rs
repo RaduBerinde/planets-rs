@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use conrod::position::{Align, Direction, Padding, Position, Relative};
 use conrod::widget::Id;
 use kiss3d::conrod::position::Place;
@@ -9,7 +10,8 @@ use kiss3d::{
 };
 
 use crate::choice::Choice;
-use crate::{control::ControlEvent, status::Status};
+use crate::control::ControlEvent;
+use crate::state::{RenderState, SimulationState};
 
 pub struct Ui {
     ids: Ids,
@@ -32,7 +34,12 @@ impl Ui {
         Self { ids }
     }
 
-    pub fn frame(&self, window: &mut Window, status: Status) -> Vec<ControlEvent> {
+    pub fn frame(
+        &self,
+        window: &mut Window,
+        sim_state: &dyn SimulationState,
+        render_state: &dyn RenderState,
+    ) -> Vec<ControlEvent> {
         let mut events = Vec::<ControlEvent>::new();
         let ui = &mut window.conrod_ui_mut().set_widgets();
 
@@ -46,7 +53,7 @@ impl Ui {
             .scroll_kids_vertically()
             .set(self.ids.canvas, ui);
 
-        let timestamp = status.sim.timestamp.format("%Y-%m-%d %H:%M UTC");
+        let timestamp = sim_state.timestamp().format("%Y-%m-%d %H:%M UTC");
         widget::Text::new(&timestamp.to_string())
             .font_size(16)
             .padded_w_of(self.ids.canvas, Self::MARGIN)
@@ -56,10 +63,10 @@ impl Ui {
             //.line_spacing(5.0)
             .set(self.ids.timestamp, ui);
 
-        self.simulation_controls(ui, &status, &mut events);
-        self.simulation_speed(ui, &status, &mut events);
-        self.camera_focus(ui, &status, &mut events);
-        self.render_toggles(ui, &status, &mut events);
+        self.simulation_controls(ui, sim_state, &mut events);
+        self.simulation_speed(ui, sim_state, &mut events);
+        self.camera_focus(ui, render_state, &mut events);
+        self.render_toggles(ui, render_state, &mut events);
 
         events
     }
@@ -67,10 +74,10 @@ impl Ui {
     fn simulation_controls(
         &self,
         ui: &mut UiCell,
-        status: &Status,
+        sim_state: &dyn SimulationState,
         events: &mut Vec<ControlEvent>,
     ) {
-        if !status.sim.running {
+        if !sim_state.is_running() {
             // Play button.
             for _ in widget::Button::new()
                 .color(ui.theme().label_color.with_luminance(0.1))
@@ -154,61 +161,87 @@ impl Ui {
                 .set(self.ids.pause_shape_2, ui);
 
             // Reverse toggle.
-            for _ in widget::Toggle::new(status.sim.reverse)
-                .label("Reverse")
-                .label_font_size(12)
-                .label_color(if status.sim.reverse {
-                    color::BLACK
-                } else {
-                    ui.theme.label_color
-                })
-                .label_y(Relative::Scalar(2.0))
-                .w_h(60.0, 40.0)
-                .align_middle_y_of(self.ids.pause)
-                .x_relative_to(self.ids.canvas, Self::WIDTH * 0.5 - Self::MARGIN - 30.0)
-                .set(self.ids.reverse, ui)
-            {
+            if self.toggle_switch(
+                ui,
+                self.ids.reverse_toggle_title,
+                "Reverse",
+                self.ids.pause,
+                Relative::Align(Align::Middle),
+                sim_state.is_reverse(),
+            ) {
                 events.push(ControlEvent::Reverse);
             }
+            // for _ in widget::Toggle::new(status.sim.reverse)
+            //     .label("Reverse")
+            //     .label_font_size(12)
+            //     .label_color(if status.sim.reverse {
+            //         color::BLACK
+            //     } else {
+            //         ui.theme.label_color
+            //     })
+            //     .label_y(Relative::Scalar(2.0))
+            //     .w_h(60.0, 40.0)
+            //     .align_middle_y_of(self.ids.pause)
+            //     .x_relative_to(self.ids.canvas, Self::WIDTH * 0.5 - Self::MARGIN - 30.0)
+            //     .set(self.ids.reverse, ui)
+            // {
+            //     events.push(ControlEvent::Reverse);
+            // }
         }
     }
 
-    fn simulation_speed(&self, ui: &mut UiCell, status: &Status, events: &mut Vec<ControlEvent>) {
+    fn simulation_speed(
+        &self,
+        ui: &mut UiCell,
+        sim_state: &dyn SimulationState,
+        events: &mut Vec<ControlEvent>,
+    ) {
         if let Some(new_speed) = self.choice_buttons(
             ui,
             self.ids.speed_title,
             "Simulation speed (time/wall-sec)",
             self.ids.play_pause,
             26.0,
-            &status.sim.speed,
+            &sim_state.speed(),
             |&d| duration_short_string(&d),
         ) {
             events.push(ControlEvent::SetSpeed(new_speed))
         }
     }
 
-    fn camera_focus(&self, ui: &mut UiCell, status: &Status, events: &mut Vec<ControlEvent>) {
+    fn camera_focus(
+        &self,
+        ui: &mut UiCell,
+        render_state: &dyn RenderState,
+        events: &mut Vec<ControlEvent>,
+    ) {
         if let Some(new_camera) = self.choice_buttons(
             ui,
             self.ids.camera_title,
             "Camera",
             self.ids.speed_1,
             30.0,
-            &status.render.camera_focus,
+            &render_state.camera_focus(),
             |&d| d.props().name.to_string(),
         ) {
             events.push(ControlEvent::SetCamera(new_camera))
         }
     }
 
-    fn render_toggles(&self, ui: &mut UiCell, status: &Status, events: &mut Vec<ControlEvent>) {
-        widget::Text::new("Show trails")
-            .font_size(12)
-            .x_place_on(self.ids.canvas, Place::End(Some(Self::MARGIN + 28.0)))
-            .down(20.0)
-            .set(self.ids.trails_text, ui);
-
-        if self.toggle_switch(ui, self.ids.trails_toggle_rect, status.render.show_trails) {
+    fn render_toggles(
+        &self,
+        ui: &mut UiCell,
+        render_state: &dyn RenderState,
+        events: &mut Vec<ControlEvent>,
+    ) {
+        if self.toggle_switch(
+            ui,
+            self.ids.trails_toggle_title,
+            "Trails",
+            ui.maybe_prev_widget().unwrap(),
+            Relative::Direction(Direction::Backwards, 20.0),
+            render_state.show_trails(),
+        ) {
             events.push(ControlEvent::ToggleTrails)
         }
     }
@@ -263,11 +296,27 @@ impl Ui {
     }
 
     // Creates a toggle switch, positioned near the right edge, vertically
-    // aligned with the previous widget. Returns true if the switch was
-    // activated.
-    fn toggle_switch(&self, ui: &mut UiCell, start_id: Id, is_set: bool) -> bool {
-        let rect_id = start_id;
-        let circle_id = Id::new(start_id.index() + 1);
+    // positioned relative to the previous widget. Returns true if the switch
+    // was activated.
+    fn toggle_switch(
+        &self,
+        ui: &mut UiCell,
+        start_id: Id,
+        title: &'static str,
+        y_id: Id,
+        y: Relative,
+        is_set: bool,
+    ) -> bool {
+        let title_id = start_id;
+        let rect_id = Id::new(start_id.index() + 1);
+        let circle_id = Id::new(start_id.index() + 2);
+
+        widget::Text::new(title)
+            .font_size(12)
+            .x_place_on(self.ids.canvas, Place::End(Some(Self::MARGIN + 28.0)))
+            .y_position_relative_to(y_id, y)
+            .set(title_id, ui);
+
         let mut rect_color = if is_set {
             ui.theme().shape_color
         } else {
@@ -363,7 +412,10 @@ widget_ids! {
         camera_4,
         camera_5,
         camera_6,
-        trails_text,
+        reverse_toggle_title,
+        reverse_toggle_rect,
+        reverse_toggle_circle,
+        trails_toggle_title,
         trails_toggle_rect,
         trails_toggle_circle,
     }

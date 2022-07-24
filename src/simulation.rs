@@ -3,7 +3,7 @@ use std::{
     time::Instant,
 };
 
-use crate::{choice::ChoiceSet, status::SimulationStatus};
+use crate::{choice::ChoiceSet, state::SimulationState};
 
 use self::seconds::Seconds;
 
@@ -21,15 +21,15 @@ pub struct Simulation {
     // Simulated duration per elapsed second.
     pub speed: Choice<chrono::Duration>,
     pub reverse: bool,
-    pub state: State,
+    state: State,
 }
 
-pub struct StartInfo {
+struct StartInfo {
     instant: Instant,
     timestamp: DateTime<Utc>,
 }
 
-pub enum State {
+enum State {
     Stopped,
     Running(StartInfo),
 }
@@ -175,10 +175,6 @@ impl Simulation {
         }
     }
 
-    fn is_running(&self) -> bool {
-        matches!(self.state, State::Running(..))
-    }
-
     // stopped is used to stop the simulation and later restart it (if it was
     // running).
     fn stopped(&mut self) -> StoppedRef {
@@ -191,13 +187,20 @@ impl Simulation {
             needs_restart: was_running,
         }
     }
-    pub fn status(&self) -> SimulationStatus {
-        SimulationStatus {
-            timestamp: self.current.timestamp,
-            running: self.is_running(),
-            speed: self.speed.clone(),
-            reverse: self.reverse,
-        }
+}
+
+impl SimulationState for Simulation {
+    fn timestamp(&self) -> DateTime<Utc> {
+        self.current.timestamp
+    }
+    fn is_running(&self) -> bool {
+        matches!(self.state, State::Running(..))
+    }
+    fn speed(&self) -> Choice<chrono::Duration> {
+        self.speed.clone()
+    }
+    fn is_reverse(&self) -> bool {
+        self.reverse
     }
 }
 
