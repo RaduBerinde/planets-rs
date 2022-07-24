@@ -1,7 +1,7 @@
+use self::body_material::*;
 use self::camera::*;
 use self::grid::Grid;
 use self::lines_material::LinesMaterial;
-use self::shadow_material::*;
 use self::trail::Trail;
 use self::ui::Ui;
 use crate::body::Body;
@@ -36,11 +36,11 @@ use std::path::Path;
 
 use std::{cell::RefCell, rc::Rc};
 
+mod body_material;
 mod camera;
 mod grid;
 mod interpolate;
 mod lines_material;
-mod shadow_material;
 mod trail;
 mod ui;
 
@@ -82,7 +82,7 @@ impl Renderer {
         MaterialManager::get_global_manager(|m| {
             m.add(
                 Rc::new(RefCell::new(
-                    Box::new(ShadowMaterial::new()) as Box<dyn Material + 'static>
+                    Box::new(BodyMaterial::new()) as Box<dyn Material + 'static>
                 )),
                 "shadow",
             );
