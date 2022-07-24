@@ -10,8 +10,9 @@ use kiss3d::resource::{Effect, Mesh, ShaderAttribute, ShaderUniform};
 use kiss3d::resource::{Material, Texture};
 use kiss3d::scene::ObjectData;
 
-/// Material used to render a body. It can calculate the shadow caused by
-/// another body (eclipse).
+// Material used to render a body (other than the Sun). It supports:
+//  - blending of day and night texture maps;
+//  - shadow calculation caused by one other body (eclipse).
 pub struct BodyMaterial {
     effect: Effect,
     pos: ShaderAttribute<Point3<f32>>,
