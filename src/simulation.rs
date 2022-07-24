@@ -19,8 +19,8 @@ pub use snapshot::Snapshot;
 pub struct Simulation {
     pub current: Snapshot,
     // Simulated duration per elapsed second.
-    pub speed: Choice<chrono::Duration>,
-    pub reverse: bool,
+    speed: Choice<chrono::Duration>,
+    reverse: bool,
     state: State,
 }
 
