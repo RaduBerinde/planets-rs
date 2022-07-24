@@ -306,8 +306,8 @@ impl Ui {
     }
 
     // Creates a toggle switch, positioned near the right edge, vertically
-    // positioned relative to the previous widget. Returns true if the switch
-    // was activated.
+    // positioned relative to a given widget. Returns true if the switch was
+    // activated.
     fn toggle_switch(
         &self,
         ui: &mut UiCell,
