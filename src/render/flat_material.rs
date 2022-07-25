@@ -11,7 +11,6 @@ pub struct FlatMaterial {
     effect: Effect,
     pos: ShaderAttribute<Point3<f32>>,
     tex_coord: ShaderAttribute<Point2<f32>>,
-    //tex: ShaderUniform<i32>,
     transform: ShaderUniform<Matrix4<f32>>,
     proj: ShaderUniform<Matrix4<f32>>,
     view: ShaderUniform<Matrix4<f32>>,
@@ -29,7 +28,6 @@ impl FlatMaterial {
         FlatMaterial {
             pos: effect.get_attrib("position").unwrap(),
             tex_coord: effect.get_attrib("tex_coord").unwrap(),
-            //tex: effect.get_uniform("tex").unwrap(),
             transform: effect.get_uniform("transform").unwrap(),
             view: effect.get_uniform("view").unwrap(),
             proj: effect.get_uniform("proj").unwrap(),

@@ -174,22 +174,6 @@ impl Ui {
             ) {
                 events.push(ControlEvent::Reverse);
             }
-            // for _ in widget::Toggle::new(status.sim.reverse)
-            //     .label("Reverse")
-            //     .label_font_size(12)
-            //     .label_color(if status.sim.reverse {
-            //         color::BLACK
-            //     } else {
-            //         ui.theme.label_color
-            //     })
-            //     .label_y(Relative::Scalar(2.0))
-            //     .w_h(60.0, 40.0)
-            //     .align_middle_y_of(self.ids.pause)
-            //     .x_relative_to(self.ids.canvas, Self::WIDTH * 0.5 - Self::MARGIN - 30.0)
-            //     .set(self.ids.reverse, ui)
-            // {
-            //     events.push(ControlEvent::Reverse);
-            // }
         }
     }
 
