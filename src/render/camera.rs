@@ -72,7 +72,7 @@ impl MyCamera {
     pub fn new(dx_px: f64) -> Self {
         let fov = std::f64::consts::PI / 4.0;
         let aspect = 800.0 / 600.0;
-        let (znear, zfar) = (5e+2, 1e+10);
+        let (znear, zfar) = (5e+2, 2e+10);
 
         let mut res = Self {
             projection: Perspective3::new(aspect, fov, znear, zfar),
@@ -87,7 +87,7 @@ impl MyCamera {
             yaw: 0.0,
             pitch: 0.0,
             min_pitch: 0.0,
-            max_pitch: PI * 0.6,
+            max_pitch: PI * 0.75,
             dist_scale_next_frame: None,
             last_cursor_pos: nalgebra::zero(),
             last_framebuffer_size: Vector2::new(800, 600),

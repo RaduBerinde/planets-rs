@@ -9,6 +9,8 @@ use crate::body::Body::*;
 use crate::choice::Choice;
 use crate::choice::ChoiceSet;
 use crate::control::ControlEvent;
+use crate::render::flat_material::FlatMaterial;
+use crate::render::skybox::Skybox;
 use crate::simulation::Snapshot;
 use crate::state::RenderState;
 use crate::state::SimulationState;
@@ -38,9 +40,11 @@ use std::{cell::RefCell, rc::Rc};
 
 mod body_material;
 mod camera;
+mod flat_material;
 mod grid;
 mod interpolate;
 mod lines_material;
+mod skybox;
 mod trail;
 mod ui;
 
@@ -50,6 +54,7 @@ pub struct Renderer {
     camera_focus: Choice<Body>,
 
     grid: Grid,
+    skybox: Skybox,
 
     sun_node: SceneNode,
 
@@ -84,13 +89,19 @@ impl Renderer {
                 Rc::new(RefCell::new(
                     Box::new(BodyMaterial::new()) as Box<dyn Material + 'static>
                 )),
-                "shadow",
+                "body",
             );
             m.add(
                 Rc::new(RefCell::new(
                     Box::new(LinesMaterial::new()) as Box<dyn Material + 'static>
                 )),
                 "lines",
+            );
+            m.add(
+                Rc::new(RefCell::new(
+                    Box::new(FlatMaterial::new()) as Box<dyn Material + 'static>
+                )),
+                "flat",
             );
         });
 
@@ -100,10 +111,10 @@ impl Renderer {
         println!("Loading sun texture");
         sun_node.set_texture_from_file(Path::new("./media/sun.jpg"), "sun");
 
-        // Init the Earth. The earth uses our custom shadow material.
+        // Init the Earth. The earth uses our custom body material.
         let mut earth_node = window.add_sphere(Earth.radius());
         earth_node.set_material(MaterialManager::get_global_manager(|m| {
-            m.get("shadow").unwrap()
+            m.get("body").unwrap()
         }));
 
         println!("Loading earth textures");
@@ -159,10 +170,10 @@ impl Renderer {
             ),
         );
 
-        // Init the Moon. The moon also uses our custom shadow material.
+        // Init the Moon. The moon also uses our custom body material.
         let mut moon_node = window.add_sphere(Moon.radius());
         moon_node.set_material(MaterialManager::get_global_manager(|m| {
-            m.get("shadow").unwrap()
+            m.get("body").unwrap()
         }));
 
         println!("Loading moon textures");
@@ -193,12 +204,15 @@ impl Renderer {
         );
 
         let camera = MyCamera::new(-Ui::WIDTH * window.scale_factor());
+        let skybox = Skybox::new(window, 2e+10);
+        let grid = Grid::new(window, 20);
         let ui = Ui::new(window);
 
         let mut renderer = Renderer {
             camera,
             camera_focus: ChoiceSet::new([Earth, Moon, Sun]).by_index(0),
-            grid: Grid::new(window, 20),
+            grid,
+            skybox,
             sun_node,
             earth_node,
             earth_lighting,

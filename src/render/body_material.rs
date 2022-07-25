@@ -51,7 +51,7 @@ pub struct BodyLightingData {
 impl BodyMaterial {
     pub fn new() -> BodyMaterial {
         // load the effect
-        let mut effect = Effect::new_from_str(OBJECT_VERTEX_SRC, OBJECT_FRAGMENT_SRC);
+        let mut effect = Effect::new_from_str(BODY_VERTEX_SRC, BODY_FRAGMENT_SRC);
 
         effect.use_program();
 
@@ -167,6 +167,6 @@ impl Material for BodyMaterial {
     }
 }
 
-const OBJECT_VERTEX_SRC: &str = include_str!("body_material.vert");
+const BODY_VERTEX_SRC: &str = include_str!("body_material.vert");
 
-const OBJECT_FRAGMENT_SRC: &str = include_str!("body_material.frag");
+const BODY_FRAGMENT_SRC: &str = include_str!("body_material.frag");
