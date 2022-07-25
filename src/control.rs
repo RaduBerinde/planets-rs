@@ -17,6 +17,7 @@ pub enum ControlEvent {
     Reverse,
     ToggleTrails,
     ToggleEcliptic,
+    ToggleSkybox,
     Exit,
 }
 
@@ -33,6 +34,7 @@ thread_local! {
         (Key::Q, ControlEvent::Exit),
         (Key::T, ControlEvent::ToggleTrails),
         (Key::G, ControlEvent::ToggleEcliptic),
+        (Key::S, ControlEvent::ToggleSkybox),
     ]);
 }
 

@@ -17,4 +17,5 @@ pub trait RenderState {
     fn camera_focus(&self) -> Choice<Body>;
     fn show_trails(&self) -> bool;
     fn show_ecliptic(&self) -> bool;
+    fn show_skybox(&self) -> bool;
 }

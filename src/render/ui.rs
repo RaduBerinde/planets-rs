@@ -52,6 +52,10 @@ impl Ui {
             .scroll_kids_vertically()
             .set(self.ids.canvas, ui);
 
+        widget::Scrollbar::y_axis(self.ids.canvas)
+            .auto_hide(true)
+            .set(self.ids.canvas_scrollbar, ui);
+
         let timestamp = sim_state.timestamp().format("%Y-%m-%d %H:%M UTC");
         widget::Text::new(&timestamp.to_string())
             .font_size(16)
@@ -254,6 +258,17 @@ impl Ui {
         ) {
             events.push(ControlEvent::ToggleEcliptic)
         }
+
+        if self.toggle_switch(
+            ui,
+            self.ids.skybox_toggle_title,
+            "Star background",
+            ui.maybe_prev_widget().unwrap(),
+            Relative::Direction(Direction::Backwards, 20.0),
+            render_state.show_skybox(),
+        ) {
+            events.push(ControlEvent::ToggleSkybox)
+        }
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -390,6 +405,7 @@ impl Ui {
 widget_ids! {
     struct Ids {
         canvas,
+        canvas_scrollbar,
         timestamp,
         play_pause,
         jump_back,
@@ -431,6 +447,9 @@ widget_ids! {
         ecliptic_toggle_title,
         ecliptic_toggle_rect,
         ecliptic_toggle_circle,
+        skybox_toggle_title,
+        skybox_toggle_rect,
+        skybox_toggle_circle,
     }
 }
 

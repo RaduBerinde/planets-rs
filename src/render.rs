@@ -404,6 +404,9 @@ impl Renderer {
             ControlEvent::ToggleEcliptic => {
                 self.grid.set_visible(!self.grid.is_visible());
             }
+            ControlEvent::ToggleSkybox => {
+                self.skybox.set_visible(!self.skybox.is_visible());
+            }
             _ => {}
         }
     }
@@ -456,5 +459,9 @@ impl RenderState for Renderer {
 
     fn show_ecliptic(&self) -> bool {
         self.grid.is_visible()
+    }
+
+    fn show_skybox(&self) -> bool {
+        self.skybox.is_visible()
     }
 }
