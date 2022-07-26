@@ -155,10 +155,9 @@ void main() {
      float tan_len = length(tangent);
      if (tan_len > 1e-6) {
         tangent = tangent / tan_len;
-        vec3 bitangent = cross(normal, tangent);
-        vec3 nmap = texture2D(normal_map_tex, frag_tex_coord).xyz;
-        nmap = normalize(nmap * 2.0 - vec3(1.0, 1.0, 1.0));
-        normal = nmap.x * tangent + nmap.y * bitangent + nmap.z * normal;
+        vec3 bitangent = cross(tangent, normal);
+        vec3 nmap = texture2D(normal_map_tex, frag_tex_coord).xyz * 2.0 - 1.0;
+        normal = normalize(nmap.x * tangent + nmap.y * bitangent + nmap.z * normal);
      }
   }
 

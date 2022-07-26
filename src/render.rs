@@ -137,7 +137,7 @@ impl Renderer {
             )
         });
         let earth_lighting = Rc::new(RefCell::new(BodyLightingData {
-            day_color: Point3::new(1.2, 1.2, 1.2),
+            day_color: Point3::new(1.3, 1.3, 1.3),
             day_texture: None, // will be set each frame.
             night_color: Point3::new(0.9, 0.9, 0.9),
             night_texture: None, // will be set each frame.
@@ -181,13 +181,14 @@ impl Renderer {
 
         println!("Loading moon textures");
         let moon_lighting = Rc::new(RefCell::new(BodyLightingData {
-            day_color: Point3::new(1.0, 1.0, 1.0),
-            // day_texture: Some(TextureManager::get_global_manager(|tm| {
-            //     tm.add(Path::new("./media/2k_moon.jpg"), "moon")
-            // })),
-            day_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
+            day_color: Point3::new(1.1, 1.1, 1.1),
+            day_texture: Some(TextureManager::get_global_manager(|tm| {
+                tm.add(Path::new("./media/2k_moon.jpg"), "moon")
+            })),
+            //day_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
             night_color: Moon.props().color_vec() * 0.1,
             night_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
+            //normal_texture: None,
             normal_texture: Some(TextureManager::get_global_manager(|tm| {
                 tm.add(Path::new("./media/moon_normal.jpg"), "moon-normal-map")
             })),
