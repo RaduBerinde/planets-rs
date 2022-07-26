@@ -258,7 +258,7 @@ impl MyCamera {
     }
 
     pub fn pitch_and_yaw(focus: Point3<f64>, eye: Point3<f64>) -> (f64, f64) {
-        let vec = (eye - focus).normalize();
+        let vec = eye - focus;
         let yaw = -0.5 * PI - f64::atan2(vec.y, vec.x);
         let pitch = vec.angle(&Vector3::new(0.0, 0.0, 1.0));
         (pitch, yaw)
