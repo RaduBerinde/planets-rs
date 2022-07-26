@@ -8,6 +8,8 @@ use crate::body::Body;
 use crate::body::Body::*;
 use crate::choice::Choice;
 use crate::choice::ChoiceSet;
+use crate::control::CameraDirection;
+use crate::control::CameraSpec;
 use crate::control::ControlEvent;
 use crate::render::flat_material::FlatMaterial;
 use crate::render::skybox::Skybox;
@@ -51,7 +53,7 @@ mod ui;
 pub struct Renderer {
     camera: MyCamera,
 
-    camera_focus: Choice<Body>,
+    camera_focus: Choice<CameraSpec>,
 
     grid: Grid,
     skybox: Skybox,
@@ -216,9 +218,30 @@ impl Renderer {
         let grid = Grid::new(window, 20);
         let ui = Ui::new(window);
 
+        let camera_specs = [
+            CameraSpec {
+                focus: Earth,
+                direction: CameraDirection::FromAbove,
+                dist: 10.0 * Earth.radius64(),
+                description: "Earth",
+            },
+            CameraSpec {
+                focus: Moon,
+                direction: CameraDirection::FromAbove,
+                dist: 30.0 * Moon.radius64(),
+                description: "Moon",
+            },
+            CameraSpec {
+                focus: Sun,
+                direction: CameraDirection::FromAbove,
+                dist: 10.0 * Sun.radius64(),
+                description: "Sun",
+            },
+        ];
+
         let mut renderer = Renderer {
             camera,
-            camera_focus: ChoiceSet::new([Earth, Moon, Sun]).by_index(0),
+            camera_focus: ChoiceSet::new(camera_specs).by_index(0),
             grid,
             skybox,
             sun_node,
@@ -255,7 +278,7 @@ impl Renderer {
         sim_state: &dyn SimulationState,
     ) -> Vec<ControlEvent> {
         self.camera
-            .update_focus(self.abs_position(self.camera_focus.get()));
+            .update_focus(self.abs_position(self.camera_focus.get().focus));
 
         self.grid.update(
             Point3::new(0.0, 0.0, -self.camera.focus().z as f32),
@@ -378,16 +401,11 @@ impl Renderer {
         }
     }
 
-    fn transition_camera(&mut self, body: Body) {
+    fn transition_camera(&mut self, spec: CameraSpec) {
+        let body = spec.focus;
         let focus = self.abs_position(body);
         let radius = body.radius64();
-        let dist = radius
-            * match body {
-                Sun => 10.0,
-                Earth => 10.0,
-                Moon => 30.0,
-            };
-        self.camera.transition_to(focus, dist, radius * 1.5);
+        self.camera.transition_to(focus, spec.dist, radius * 1.5);
     }
 
     pub fn handle_event(&mut self, event: &ControlEvent) {
@@ -457,7 +475,7 @@ impl Renderer {
 }
 
 impl RenderState for Renderer {
-    fn camera_focus(&self) -> Choice<Body> {
+    fn camera_focus(&self) -> Choice<CameraSpec> {
         self.camera_focus.clone()
     }
 

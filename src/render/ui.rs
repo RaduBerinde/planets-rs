@@ -209,7 +209,7 @@ impl Ui {
             self.ids.speed_1,
             30.0,
             &render_state.camera_focus(),
-            |&d| d.props().name.to_string(),
+            |&d| d.description.to_string(),
         ) {
             events.push(ControlEvent::SetCamera(new_camera))
         }

@@ -4,10 +4,10 @@ use kiss3d::event::{Action, Event, Key, WindowEvent};
 
 use crate::{body::Body, choice::Choice};
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub enum ControlEvent {
     CycleCamera,
-    SetCamera(Choice<Body>),
+    SetCamera(Choice<CameraSpec>),
     StartStop,
     JumpForward,
     JumpBack,
@@ -19,6 +19,20 @@ pub enum ControlEvent {
     ToggleEcliptic,
     ToggleSkybox,
     Exit,
+}
+
+#[derive(Clone, Copy)]
+pub struct CameraSpec {
+    pub focus: Body,
+    pub direction: CameraDirection,
+    pub dist: f64,
+    pub description: &'static str,
+}
+
+#[derive(Clone, Copy)]
+pub enum CameraDirection {
+    FromAbove,
+    From(Body),
 }
 
 thread_local! {
