@@ -32,7 +32,7 @@ pub struct CameraSpec {
 #[derive(Clone, Copy)]
 pub enum CameraDirection {
     FromAbove,
-    From(Body),
+    FromBody(Body),
 }
 
 thread_local! {

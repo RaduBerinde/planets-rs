@@ -31,12 +31,13 @@ pub struct MyCamera {
     // origin.
     focus: Point3<f64>,
     // The camera eye, in relation to the focus, is located
-    // at [0, 0, +dist] with the rotation applied;
+    // at [0, 0, +dist] before the pitch and yaw rotations are applied.
     dist: f64,
     min_dist: f64,
     max_dist: f64,
+    // yaw = 0 is looking towards the y axis.
     yaw: f64,
-    // Pitch = 0 is a top down view. Pitch = PI/2 is a side view.
+    // pitch = 0 is a top down view; pitch = PI/2 is a side view.
     pitch: f64,
     min_pitch: f64,
     max_pitch: f64,
@@ -97,7 +98,7 @@ impl MyCamera {
         res
     }
 
-    pub fn update_focus(&mut self, focus: Point3<f64>) {
+    pub fn update(&mut self, focus: Point3<f64>, pitch: f64, yaw: f64) {
         if let Some(scale) = self.dist_scale_next_frame {
             self.dist = (self.dist * scale).clamp(self.min_dist, self.max_dist);
             self.dist_scale_next_frame = None;
@@ -105,7 +106,14 @@ impl MyCamera {
         }
 
         match self.transition.as_mut() {
-            None => self.focus = focus,
+            None => {
+                self.focus = focus;
+                if self.pitch != pitch || self.yaw != yaw {
+                    self.pitch = pitch;
+                    self.yaw = yaw;
+                    self.calc_matrices();
+                }
+            }
 
             Some(transition) => {
                 transition.target_focus = focus;
@@ -247,6 +255,13 @@ impl MyCamera {
         self.pitch -= dpos.y * Self::PITCH_STEP;
         self.pitch = self.pitch.clamp(self.min_pitch, self.max_pitch);
         self.calc_matrices();
+    }
+
+    pub fn pitch_and_yaw(focus: Point3<f64>, eye: Point3<f64>) -> (f64, f64) {
+        let vec = (eye - focus).normalize();
+        let yaw = -0.5 * PI - f64::atan2(vec.y, vec.x);
+        let pitch = vec.angle(&Vector3::new(0.0, 0.0, 1.0));
+        (pitch, yaw)
     }
 }
 

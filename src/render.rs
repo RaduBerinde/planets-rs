@@ -232,6 +232,12 @@ impl Renderer {
                 description: "Moon",
             },
             CameraSpec {
+                focus: Moon,
+                direction: CameraDirection::FromBody(Earth),
+                dist: 10.0 * Moon.radius64(),
+                description: "Moon phase",
+            },
+            CameraSpec {
                 focus: Sun,
                 direction: CameraDirection::FromAbove,
                 dist: 10.0 * Sun.radius64(),
@@ -277,12 +283,19 @@ impl Renderer {
         window: &mut Window,
         sim_state: &dyn SimulationState,
     ) -> Vec<ControlEvent> {
-        self.camera
-            .update_focus(self.abs_position(self.camera_focus.get().focus));
+        let cam_spec = self.camera_focus.get();
+        let focus_pos = self.abs_position(cam_spec.focus);
+        let (pitch, yaw) = match cam_spec.direction {
+            CameraDirection::FromAbove => (0.0, 0.0),
+            CameraDirection::FromBody(b) => {
+                MyCamera::pitch_and_yaw(focus_pos, self.abs_position(b))
+            }
+        };
+        self.camera.update(focus_pos, pitch, yaw);
 
         self.grid.update(
             Point3::new(0.0, 0.0, -self.camera.focus().z as f32),
-            self.camera.dist() * 4.0,
+            (self.camera.dist() + self.camera.focus().z as f32) * 4.0,
         );
 
         // Sun.

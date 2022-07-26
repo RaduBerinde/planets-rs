@@ -20,7 +20,7 @@ impl Snapshot {
             timestamp: Utc.ymd(2000, 1, 1).and_hms(0, 0, 0),
             earth_position: Point3::new(EARTH_APHELION, 0.0, 0.0),
             earth_velocity: Vector3::new(0.0, 29.3, 0.0),
-            moon_position: Point3::new(EARTH_APHELION - 372_000.0, 0.0, 0.0),
+            moon_position: Point3::new(EARTH_APHELION - 372_000.0, 0.0, 30_000.0),
             moon_velocity: Vector3::new(0.0, 29.3 - 1.022, 0.0),
         }
     }
