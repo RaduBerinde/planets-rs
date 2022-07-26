@@ -30,6 +30,10 @@ pub struct BodyMaterial {
     light_radius: ShaderUniform<f32>,
     occluder_pos: ShaderUniform<Point3<f32>>,
     occluder_radius: ShaderUniform<f32>,
+
+    // Fields used for normal mapping.
+    normal_map_tex: ShaderUniform<i32>,
+    body_north_axis: ShaderUniform<Vector3<f32>>,
 }
 
 // BodyLightingData is used for the object's generic data (inside a Rc RefCell).
@@ -40,6 +44,8 @@ pub struct BodyLightingData {
 
     pub night_texture: Option<Rc<Texture>>,
     pub night_color: Point3<f32>,
+
+    pub normal_texture: Option<Rc<Texture>>,
 
     pub light_pos: Point3<f32>,
     pub light_radius: f32,
@@ -72,6 +78,8 @@ impl BodyMaterial {
             light_radius: effect.get_uniform("light_radius").unwrap(),
             occluder_pos: effect.get_uniform("occluder_pos").unwrap(),
             occluder_radius: effect.get_uniform("occluder_radius").unwrap(),
+            normal_map_tex: effect.get_uniform("normal_map_tex").unwrap(),
+            body_north_axis: effect.get_uniform("body_north_axis").unwrap(),
             effect,
         }
     }
@@ -142,11 +150,26 @@ impl Material for BodyMaterial {
             lighting.night_texture.as_ref().map(Rc::borrow),
         );
 
+        ctxt.active_texture(Context::TEXTURE1 + 1);
+        ctxt.bind_texture(
+            Context::TEXTURE_2D,
+            lighting.normal_texture.as_ref().map(Rc::borrow),
+        );
+
         self.day_color.upload(&lighting.day_color);
         self.night_color.upload(&lighting.night_color);
-        // Associate day_tex with TEXTURE0 and night_tex with TEXTURE1.
+        // Associate day_tex with TEXTURE0; night_tex with TEXTURE1; and
+        // normal_map_tex with TEXTURE2.
         self.day_tex.upload(&0);
         self.night_tex.upload(&1);
+        self.normal_map_tex.upload(&2);
+
+        let body_north_axis = if lighting.normal_texture.is_some() {
+            transform.rotation * Vector3::new(0.0, 1.0, 0.0)
+        } else {
+            Vector3::zeros()
+        };
+        self.body_north_axis.upload(&body_north_axis);
 
         self.light_pos.upload(&lighting.light_pos);
         self.light_radius.upload(&lighting.light_radius);

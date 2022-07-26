@@ -19,6 +19,10 @@ uniform float light_radius;
 uniform vec3 occluder_pos;
 uniform float occluder_radius;
 
+uniform vec3 body_center;
+uniform vec3 body_north_axis;
+uniform sampler2D normal_map_tex;
+
 const float pi = 3.141592653589793238;
 
 //// To create softer shadows, full shadow is only when a ray intersects an occluder that this much smaller.
@@ -144,20 +148,30 @@ float spherical_source_shadow(vec3 light_vec, float light_vec_len, float light_r
 
 void main() {
   vec3 normal = normalize(frag_normal);
+
+  if (body_north_axis != vec3(0.0, 0.0, 0.0)) {
+     // Normal mapping is enabled. Determine the tangent.
+     vec3 tangent = cross(normal, body_north_axis);
+     float tan_len = length(tangent);
+     if (tan_len > 1e-6) {
+        tangent = tangent / tan_len;
+        vec3 bitangent = cross(normal, tangent);
+        vec3 nmap = texture2D(normal_map_tex, frag_tex_coord).xyz;
+        nmap = normalize(nmap * 2.0 - vec3(1.0, 1.0, 1.0));
+        normal = nmap.x * tangent + nmap.y * bitangent + nmap.z * normal;
+     }
+  }
+
   vec3 light_vec = light_pos - frag_pos;
   float light_vec_len = length(light_vec);
-
   float lambertian = max(dot(light_vec, normal) / light_vec_len, 0.0);
   if (lambertian > 0.0) {
      //lambertian *= point_source_shadow(light_vec, occluder_pos - frag_pos, occluder_radius);
      lambertian *= spherical_source_shadow(light_vec, light_vec_len, light_radius, occluder_pos - frag_pos, occluder_radius);
   }
- 
+  
   vec4 day = texture2D(day_tex, frag_tex_coord) * vec4(day_color, 1.0);
   vec4 night = texture2D(night_tex, frag_tex_coord) * vec4(night_color, 1.0);
   // We only start to blend in the night texture when luminosity is below 0.5.
   gl_FragColor = day * lambertian + night * max(0.5 - lambertian, 0.0);
-
-  //vec4 tex_color = texture2D(tex, frag_tex_coord);
-  //gl_FragColor = tex_color * vec4(color * (0.1 + lambertian), 1.0);
 }
