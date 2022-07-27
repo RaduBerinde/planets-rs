@@ -1,5 +1,5 @@
 use std::{
-    f64::consts::PI,
+    f64::consts::{PI, TAU},
     time::{Duration, Instant},
 };
 
@@ -35,10 +35,16 @@ pub struct MyCamera {
     dist: f64,
     min_dist: f64,
     max_dist: f64,
-    // yaw = 0 is looking towards the y axis.
-    yaw: f64,
+    // The pitch and yaw are not affected by mouse control; see user_yaw, user_pitch.
     // pitch = 0 is a top down view; pitch = PI/2 is a side view.
     pitch: f64,
+    // yaw = 0 is looking towards the y axis.
+    yaw: f64,
+
+    // Change in yaw and pitch due to user input.
+    user_pitch: f64,
+    user_yaw: f64,
+
     min_pitch: f64,
     max_pitch: f64,
 
@@ -52,6 +58,8 @@ pub struct MyCamera {
 struct TransitionState {
     target_time: Instant,
     target_focus: Point3<f64>,
+    target_pitch: f64,
+    target_yaw: f64,
     target_dist: f64,
     mid_dist: f64,
     min_dist_after_transition: f64,
@@ -85,8 +93,10 @@ impl MyCamera {
             dist: Self::OVERHEAD_DIST,
             min_dist: 1e+4,
             max_dist: Self::OVERHEAD_DIST,
-            yaw: 0.0,
             pitch: 0.0,
+            yaw: 0.0,
+            user_pitch: 0.0,
+            user_yaw: 0.0,
             min_pitch: 0.0,
             max_pitch: PI * 0.75,
             dist_scale_next_frame: None,
@@ -98,8 +108,8 @@ impl MyCamera {
         res
     }
 
-    pub fn update(&mut self, focus: Point3<f64>, eye_vec: Vector3<f64>) {
-        let (pitch, yaw) = Self::pitch_and_yaw(eye_vec);
+    pub fn update(&mut self, focus: Point3<f64>, eye_dir: Vector3<f64>) {
+        let (pitch, yaw) = Self::pitch_and_yaw(eye_dir);
         if let Some(scale) = self.dist_scale_next_frame {
             self.dist = (self.dist * scale).clamp(self.min_dist, self.max_dist);
             self.dist_scale_next_frame = None;
@@ -154,12 +164,18 @@ impl MyCamera {
                         last_t,
                         t,
                     );
-                    self.pitch = transition
-                        .angles_interp
-                        .interpolate(0.0, self.pitch, last_t, t);
-                    self.yaw = transition
-                        .angles_interp
-                        .interpolate(0.0, self.yaw, last_t, t);
+                    self.pitch = transition.angles_interp.interpolate(
+                        self.pitch + norm_radian(transition.target_pitch - self.pitch),
+                        self.pitch,
+                        last_t,
+                        t,
+                    );
+                    self.yaw = transition.angles_interp.interpolate(
+                        self.yaw + norm_radian(transition.target_yaw - self.yaw),
+                        self.yaw,
+                        last_t,
+                        t,
+                    );
                     transition.last_t = t;
                 }
                 self.calc_matrices();
@@ -167,7 +183,13 @@ impl MyCamera {
         }
     }
 
-    pub fn transition_to(&mut self, focus: Point3<f64>, dist: f64, min_dist: f64) {
+    pub fn transition_to(
+        &mut self,
+        focus: Point3<f64>,
+        eye_dir: Vector3<f64>,
+        dist: f64,
+        min_dist: f64,
+    ) {
         // Calculate a distance from which both bodies would be visible (in their current positions).
         // We will first zoom out to that distance.
         let mut mid_dist = 4.0 * (self.focus - focus).norm();
@@ -177,11 +199,22 @@ impl MyCamera {
             t_mid = (mid_dist - self.dist) / (2.0 * mid_dist - self.dist - dist);
         }
 
+        // Commit the current user angle changes. Note that further changes are
+        // disabled during the transition.
+        self.pitch += self.user_pitch;
+        self.user_pitch = 0.0;
+        self.yaw += self.user_yaw;
+        self.user_yaw = 0.0;
+
+        let (target_pitch, target_yaw) = Self::pitch_and_yaw(eye_dir);
+
         let k = Self::TRANSITION_SIGMOID_K;
         let now = Instant::now();
         self.transition = Some(TransitionState {
             target_time: now + Self::TRANSITION_TIME,
             target_focus: focus,
+            target_pitch,
+            target_yaw,
             target_dist: dist,
             mid_dist,
             min_dist_after_transition: min_dist as f64,
@@ -195,9 +228,6 @@ impl MyCamera {
         })
     }
 
-    //pub fn focus(&self) -> Point3<f32> {
-    //    nalgebra::convert(self.focus)
-    //}
     pub fn focus(&self) -> Point3<f64> {
         self.focus
     }
@@ -207,8 +237,8 @@ impl MyCamera {
     }
 
     fn rotation(&self) -> UnitQuaternion<f64> {
-        UnitQuaternion::from_axis_angle(&Vector3::z_axis(), -self.yaw)
-            * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), self.pitch)
+        UnitQuaternion::from_axis_angle(&Vector3::z_axis(), -self.yaw - self.user_yaw)
+            * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), self.pitch + self.user_pitch)
     }
 
     fn calc_matrices(&mut self) {
@@ -246,21 +276,24 @@ impl MyCamera {
         if self.transition.is_some() {
             return;
         }
-        self.yaw += dpos.x * Self::YAW_STEP;
-        // Keep yaw in the -PI to PI range, so that the trivial interpolation
-        // works when the camera transitions to yaw = 0.
-        self.yaw = self.yaw.rem_euclid(2.0 * PI);
-        if self.yaw > PI {
-            self.yaw -= 2.0 * PI;
-        }
-        self.pitch -= dpos.y * Self::PITCH_STEP;
-        self.pitch = self.pitch.clamp(self.min_pitch, self.max_pitch);
+        self.user_yaw += dpos.x * Self::YAW_STEP;
+        self.user_pitch -= dpos.y * Self::PITCH_STEP;
+        self.enforce_pitch_limits();
         self.calc_matrices();
     }
 
-    fn pitch_and_yaw(eye_vec: Vector3<f64>) -> (f64, f64) {
-        let yaw = -0.5 * PI - f64::atan2(eye_vec.y, eye_vec.x);
-        let pitch = eye_vec.angle(&Vector3::new(0.0, 0.0, 1.0));
+    fn enforce_pitch_limits(&mut self) {
+        let actual_pitch = norm_radian(self.pitch + self.user_pitch);
+        if actual_pitch > self.max_pitch {
+            self.user_pitch = norm_radian(self.max_pitch - self.pitch);
+        } else if actual_pitch < self.min_pitch {
+            self.user_pitch = norm_radian(self.min_pitch - self.pitch);
+        }
+    }
+
+    fn pitch_and_yaw(eye_dir: Vector3<f64>) -> (f64, f64) {
+        let yaw = -0.5 * PI - f64::atan2(eye_dir.y, eye_dir.x);
+        let pitch = eye_dir.angle(&Vector3::new(0.0, 0.0, 1.0));
         (pitch, yaw)
     }
 }
@@ -328,5 +361,41 @@ impl Camera for MyCamera {
     ) {
         proj.upload(&self.proj);
         view.upload(&self.view);
+    }
+}
+
+// norm_radian normalizes the given angle to the range [-PI, PI].
+// Useful when interpolating between two angles - the norm_radian of the
+// difference is the "shortest way around the circle".
+fn norm_radian(angle: f64) -> f64 {
+    let a = angle.rem_euclid(TAU);
+    if a > PI {
+        a - TAU
+    } else {
+        a
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_norm_radian() {
+        let tc = [
+            (0.0, 0.0),
+            (1.0, 1.0),
+            (-1.0, -1.0),
+            (PI + 1.0, -PI + 1.0),
+            (PI - 1.0, PI - 1.0),
+            (-PI + 1.0, -PI + 1.0),
+            (-PI - 1.0, PI - 1.0),
+        ];
+        for (a, expected) in tc {
+            for delta in [0.0, TAU, -TAU, 2.0 * TAU, -3.0 * TAU] {
+                let actual = norm_radian(a + delta);
+                assert!((actual - expected).abs() < 1e-5);
+            }
+        }
     }
 }

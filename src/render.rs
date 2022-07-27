@@ -266,7 +266,7 @@ impl Renderer {
             snapshot: *snapshot,
         };
 
-        renderer.transition_camera(renderer.camera_focus.get());
+        renderer.transition_camera(&renderer.camera_focus.get());
 
         println!("Rendering initialized");
 
@@ -284,12 +284,8 @@ impl Renderer {
         sim_state: &dyn SimulationState,
     ) -> Vec<ControlEvent> {
         let cam_spec = self.camera_focus.get();
-        let focus_pos = self.abs_position(cam_spec.focus);
-        let eye_vec = match cam_spec.direction {
-            CameraDirection::FromAbove => Vector3::z_axis().into_inner(),
-            CameraDirection::FromBody(b) => self.abs_position(b) - focus_pos,
-        };
-        self.camera.update(focus_pos, eye_vec);
+        let (focus, eye_dir) = self.focus_and_eye_dir(&cam_spec);
+        self.camera.update(focus, eye_dir);
 
         self.grid.update(
             Point3::new(0.0, 0.0, -self.camera.focus().z as f32),
@@ -412,22 +408,23 @@ impl Renderer {
         }
     }
 
-    fn transition_camera(&mut self, spec: CameraSpec) {
+    fn transition_camera(&mut self, spec: &CameraSpec) {
         let body = spec.focus;
-        let focus = self.abs_position(body);
+        let (focus, eye_dir) = self.focus_and_eye_dir(&spec);
         let radius = body.radius64();
-        self.camera.transition_to(focus, spec.dist, radius * 1.5);
+        self.camera
+            .transition_to(focus, eye_dir, spec.dist, radius * 1.5);
     }
 
     pub fn handle_event(&mut self, event: &ControlEvent) {
         match event {
             ControlEvent::CycleCamera => {
                 self.camera_focus = self.camera_focus.circular_next();
-                self.transition_camera(self.camera_focus.get());
+                self.transition_camera(&self.camera_focus.get());
             }
             ControlEvent::SetCamera(camera_focus) => {
                 self.camera_focus = camera_focus.clone();
-                self.transition_camera(self.camera_focus.get());
+                self.transition_camera(&self.camera_focus.get());
             }
             ControlEvent::Reverse => {
                 self.earth_trail.reset();
@@ -458,6 +455,15 @@ impl Renderer {
             Earth => self.snapshot.earth_position,
             Moon => self.snapshot.moon_position,
         }
+    }
+
+    fn focus_and_eye_dir(&self, cam_spec: &CameraSpec) -> (Point3<f64>, Vector3<f64>) {
+        let focus = self.abs_position(cam_spec.focus);
+        let eye_dir = match cam_spec.direction {
+            CameraDirection::FromAbove => Vector3::z_axis().into_inner(),
+            CameraDirection::FromBody(b) => self.abs_position(b) - focus,
+        };
+        (focus, eye_dir)
     }
 
     pub fn transformation(&self, body: Body) -> Isometry3<f32> {
