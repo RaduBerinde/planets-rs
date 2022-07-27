@@ -64,10 +64,9 @@ struct TransitionState {
     mid_dist: f64,
     min_dist_after_transition: f64,
 
-    dist_to_intermediate: interpolate::Params,
-    dist_from_intermediate: interpolate::Params,
+    to_intermediate: interpolate::Params,
+    from_intermediate: interpolate::Params,
     focus_interp: interpolate::Params,
-    angles_interp: interpolate::Params,
 
     start_time: Instant,
     last_t: f64,
@@ -122,6 +121,7 @@ impl MyCamera {
                 if self.pitch != pitch || self.yaw != yaw {
                     self.pitch = pitch;
                     self.yaw = yaw;
+                    self.enforce_pitch_limits();
                     self.calc_matrices();
                 }
             }
@@ -133,8 +133,8 @@ impl MyCamera {
                 if transition.target_time.duration_since(now).is_zero() {
                     self.focus = transition.target_focus;
                     self.dist = transition.target_dist;
-                    self.pitch = 0.0;
-                    self.yaw = 0.0;
+                    self.pitch = transition.target_pitch;
+                    self.yaw = transition.target_yaw;
                     self.min_dist = transition.min_dist_after_transition;
                     self.transition = None;
                 } else {
@@ -143,17 +143,41 @@ impl MyCamera {
                         / (transition.target_time - transition.start_time).as_secs_f64();
                     assert!(last_t <= t);
 
-                    if t < transition.dist_to_intermediate.t_end {
-                        self.dist = transition.dist_to_intermediate.interpolate(
+                    if t < transition.to_intermediate.t_end {
+                        self.dist = transition.to_intermediate.interpolate(
                             transition.mid_dist,
                             self.dist,
                             last_t,
                             t,
                         );
+                        self.pitch = transition.to_intermediate.interpolate(
+                            0.0,
+                            norm_radian(self.pitch),
+                            last_t,
+                            t,
+                        );
+                        self.yaw = transition.to_intermediate.interpolate(
+                            0.0,
+                            norm_radian(self.yaw),
+                            last_t,
+                            t,
+                        );
                     } else {
-                        self.dist = transition.dist_from_intermediate.interpolate(
+                        self.dist = transition.from_intermediate.interpolate(
                             transition.target_dist,
                             self.dist,
+                            last_t,
+                            t,
+                        );
+                        self.pitch = transition.from_intermediate.interpolate(
+                            self.pitch + norm_radian(transition.target_pitch - self.pitch),
+                            self.pitch,
+                            last_t,
+                            t,
+                        );
+                        self.yaw = transition.from_intermediate.interpolate(
+                            self.yaw + norm_radian(transition.target_yaw - self.yaw),
+                            self.yaw,
                             last_t,
                             t,
                         );
@@ -161,18 +185,6 @@ impl MyCamera {
                     self.focus = transition.focus_interp.interpolate(
                         transition.target_focus,
                         self.focus,
-                        last_t,
-                        t,
-                    );
-                    self.pitch = transition.angles_interp.interpolate(
-                        self.pitch + norm_radian(transition.target_pitch - self.pitch),
-                        self.pitch,
-                        last_t,
-                        t,
-                    );
-                    self.yaw = transition.angles_interp.interpolate(
-                        self.yaw + norm_radian(transition.target_yaw - self.yaw),
-                        self.yaw,
                         last_t,
                         t,
                     );
@@ -221,10 +233,9 @@ impl MyCamera {
             start_time: now,
             last_t: 0.0,
 
-            dist_to_intermediate: interpolate::Params::with_range(k, 0.0, t_mid),
-            dist_from_intermediate: interpolate::Params::with_range(k, t_mid, 1.0),
+            to_intermediate: interpolate::Params::with_range(k, 0.0, t_mid),
+            from_intermediate: interpolate::Params::with_range(k, t_mid, 1.0),
             focus_interp: interpolate::Params::with_range(k, t_mid * 0.7, 1.0),
-            angles_interp: interpolate::Params::new(k),
         })
     }
 
