@@ -292,6 +292,10 @@ impl MyCamera {
     }
 
     fn pitch_and_yaw(eye_dir: Vector3<f64>) -> (f64, f64) {
+        if eye_dir.x == 0.0 && eye_dir.y == 0.0 && eye_dir.z > 0.0 {
+            // Special case for top-down views.
+            return (0.0, 0.0);
+        }
         let yaw = -0.5 * PI - f64::atan2(eye_dir.y, eye_dir.x);
         let pitch = eye_dir.angle(&Vector3::new(0.0, 0.0, 1.0));
         (pitch, yaw)
