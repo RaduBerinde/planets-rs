@@ -98,7 +98,8 @@ impl MyCamera {
         res
     }
 
-    pub fn update(&mut self, focus: Point3<f64>, pitch: f64, yaw: f64) {
+    pub fn update(&mut self, focus: Point3<f64>, eye_vec: Vector3<f64>) {
+        let (pitch, yaw) = Self::pitch_and_yaw(eye_vec);
         if let Some(scale) = self.dist_scale_next_frame {
             self.dist = (self.dist * scale).clamp(self.min_dist, self.max_dist);
             self.dist_scale_next_frame = None;
@@ -257,10 +258,9 @@ impl MyCamera {
         self.calc_matrices();
     }
 
-    pub fn pitch_and_yaw(focus: Point3<f64>, eye: Point3<f64>) -> (f64, f64) {
-        let vec = eye - focus;
-        let yaw = -0.5 * PI - f64::atan2(vec.y, vec.x);
-        let pitch = vec.angle(&Vector3::new(0.0, 0.0, 1.0));
+    fn pitch_and_yaw(eye_vec: Vector3<f64>) -> (f64, f64) {
+        let yaw = -0.5 * PI - f64::atan2(eye_vec.y, eye_vec.x);
+        let pitch = eye_vec.angle(&Vector3::new(0.0, 0.0, 1.0));
         (pitch, yaw)
     }
 }

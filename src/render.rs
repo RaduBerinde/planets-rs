@@ -285,13 +285,11 @@ impl Renderer {
     ) -> Vec<ControlEvent> {
         let cam_spec = self.camera_focus.get();
         let focus_pos = self.abs_position(cam_spec.focus);
-        let (pitch, yaw) = match cam_spec.direction {
-            CameraDirection::FromAbove => (0.0, 0.0),
-            CameraDirection::FromBody(b) => {
-                MyCamera::pitch_and_yaw(focus_pos, self.abs_position(b))
-            }
+        let eye_vec = match cam_spec.direction {
+            CameraDirection::FromAbove => Vector3::z_axis().into_inner(),
+            CameraDirection::FromBody(b) => self.abs_position(b) - focus_pos,
         };
-        self.camera.update(focus_pos, pitch, yaw);
+        self.camera.update(focus_pos, eye_vec);
 
         self.grid.update(
             Point3::new(0.0, 0.0, -self.camera.focus().z as f32),
