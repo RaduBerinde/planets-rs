@@ -25,7 +25,8 @@ pub enum ControlEvent {
 pub struct CameraSpec {
     pub focus: Body,
     pub direction: CameraDirection,
-    pub dist: f64,
+    // Distance from body, as a multiple of its radius.
+    pub relative_dist: f64,
     pub description: &'static str,
 }
 

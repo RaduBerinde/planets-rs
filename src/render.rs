@@ -222,25 +222,25 @@ impl Renderer {
             CameraSpec {
                 focus: Earth,
                 direction: CameraDirection::FromAbove,
-                dist: 10.0 * Earth.radius64(),
+                relative_dist: 10.0,
                 description: "Earth",
             },
             CameraSpec {
                 focus: Moon,
                 direction: CameraDirection::FromAbove,
-                dist: 30.0 * Moon.radius64(),
+                relative_dist: 30.0,
                 description: "Moon",
             },
             CameraSpec {
                 focus: Moon,
                 direction: CameraDirection::FromBody(Earth),
-                dist: 10.0 * Moon.radius64(),
+                relative_dist: 10.0,
                 description: "Moon phase",
             },
             CameraSpec {
                 focus: Sun,
                 direction: CameraDirection::FromAbove,
-                dist: 10.0 * Sun.radius64(),
+                relative_dist: 10.0,
                 description: "Sun",
             },
         ];
@@ -410,10 +410,14 @@ impl Renderer {
 
     fn transition_camera(&mut self, spec: &CameraSpec) {
         let body = spec.focus;
-        let (focus, eye_dir) = self.focus_and_eye_dir(&spec);
+        let (focus, eye_dir) = self.focus_and_eye_dir(spec);
         let radius = body.radius64();
-        self.camera
-            .transition_to(focus, eye_dir, spec.dist, radius * 1.5);
+        self.camera.transition_to(
+            focus,
+            eye_dir,
+            spec.relative_dist * body.radius64(),
+            radius * 1.5,
+        );
     }
 
     pub fn handle_event(&mut self, event: &ControlEvent) {

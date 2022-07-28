@@ -6,11 +6,7 @@ pub struct Params {
 }
 
 impl Params {
-    pub fn new(k: f64) -> Self {
-        Self::with_range(k, 0.0, 1.0)
-    }
-
-    pub fn with_range(k: f64, t_start: f64, t_end: f64) -> Self {
+    pub fn new(k: f64, t_start: f64, t_end: f64) -> Self {
         Self { k, t_start, t_end }
     }
 
@@ -88,11 +84,13 @@ mod tests {
         datadriven::walk("src/render/testdata/interpolate", |f| {
             f.run(|tc| -> String {
                 let k: f64 = tc.args.get("k").unwrap()[0].parse().unwrap();
-                let mut p = Params::new(k);
+                let mut t_start = 0.0;
+                let mut t_end = 1.0;
                 if let Some(val) = tc.args.get("t_range") {
-                    p.t_start = val[0].parse().unwrap();
-                    p.t_end = val[1].parse().unwrap();
+                    t_start = val[0].parse().unwrap();
+                    t_end = val[1].parse().unwrap();
                 }
+                let p = Params::new(k, t_start, t_end);
 
                 match tc.directive.as_str() {
                     "t_func" => plot(|t| p.t_func(t)),

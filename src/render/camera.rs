@@ -233,9 +233,9 @@ impl MyCamera {
             start_time: now,
             last_t: 0.0,
 
-            to_intermediate: interpolate::Params::with_range(k, 0.0, t_mid),
-            from_intermediate: interpolate::Params::with_range(k, t_mid, 1.0),
-            focus_interp: interpolate::Params::with_range(k, t_mid * 0.7, 1.0),
+            to_intermediate: interpolate::Params::new(k, 0.0, t_mid),
+            from_intermediate: interpolate::Params::new(k, t_mid, 1.0),
+            focus_interp: interpolate::Params::new(k, t_mid * 0.7, 1.0),
         })
     }
 
