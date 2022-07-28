@@ -42,15 +42,26 @@ impl Ui {
         let mut events = Vec::<ControlEvent>::new();
         let ui = &mut window.conrod_ui_mut().set_widgets();
 
-        // `Canvas` is a widget that provides some basic functionality for laying out children widgets.
-        // By default, its size is the size of the window. We'll use this as a background for the
-        // following widgets, as well as a scrollable container for the children widgets.
         widget::Canvas::new()
-            .pad(Self::MARGIN)
+            .flow_down(&[
+                (
+                    self.ids.canvas,
+                    widget::Canvas::new()
+                        .pad(Self::MARGIN)
+                        .scroll_kids_vertically(),
+                ),
+                (
+                    self.ids.footer,
+                    widget::Canvas::new()
+                        .length(18.0)
+                        .pad_left(4.0)
+                        .pad_right(4.0)
+                        .pad_bottom(2.0),
+                ),
+            ])
             .align_right()
             .w(Self::WIDTH)
-            .scroll_kids_vertically()
-            .set(self.ids.canvas, ui);
+            .set(self.ids.master, ui);
 
         widget::Scrollbar::y_axis(self.ids.canvas)
             .auto_hide(true)
@@ -63,7 +74,6 @@ impl Ui {
             .mid_top_of(self.ids.canvas)
             .align_middle_x_of(self.ids.canvas)
             .center_justify()
-            //.line_spacing(5.0)
             .set(self.ids.timestamp, ui);
 
         self.simulation_controls(ui, sim_state, &mut events);
@@ -71,6 +81,10 @@ impl Ui {
         self.camera_focus(ui, render_state, &mut events);
         self.render_toggles(ui, render_state, &mut events);
 
+        widget::Text::new(&format!("fps: {:.1}", render_state.fps()))
+            .font_size(12)
+            .mid_right_of(self.ids.footer)
+            .set(self.ids.fps, ui);
         events
     }
 
@@ -344,6 +358,7 @@ impl Ui {
         widget::RoundedRectangle::fill([28.0, 14.0], 7.0)
             .color(rect_color)
             .x_relative_to(self.ids.canvas, Self::WIDTH * 0.5 - Self::MARGIN - 14.0)
+            .parent(self.ids.canvas)
             .y_relative(-2.0)
             //.align_middle_y()
             .set(rect_id, ui);
@@ -388,8 +403,10 @@ impl Ui {
 // Generate a unique `WidgetId` for each widget.
 widget_ids! {
     struct Ids {
+        master,
         canvas,
         canvas_scrollbar,
+        footer,
         timestamp,
         play_pause,
         jump_back,
@@ -434,6 +451,7 @@ widget_ids! {
         skybox_toggle_title,
         skybox_toggle_rect,
         skybox_toggle_circle,
+        fps,
     }
 }
 

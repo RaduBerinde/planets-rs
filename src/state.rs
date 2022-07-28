@@ -18,4 +18,5 @@ pub trait RenderState {
     fn show_trails(&self) -> bool;
     fn show_ecliptic(&self) -> bool;
     fn show_skybox(&self) -> bool;
+    fn fps(&self) -> f64;
 }

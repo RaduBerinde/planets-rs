@@ -13,6 +13,7 @@ use crate::config::CameraDirection;
 use crate::config::CameraSpec;
 use crate::control::ControlEvent;
 use crate::render::flat_material::FlatMaterial;
+use crate::render::fps::Fps;
 use crate::render::skybox::Skybox;
 use crate::simulation::Snapshot;
 use crate::state::RenderState;
@@ -39,6 +40,7 @@ mod body_hint;
 mod body_material;
 mod camera;
 mod flat_material;
+mod fps;
 mod grid;
 mod interpolate;
 mod lines_material;
@@ -69,6 +71,7 @@ pub struct Renderer {
     moon_lighting: Rc<RefCell<BodyLightingData>>,
     moon_trail: Trail,
 
+    fps: Fps,
     ui: Ui,
 
     snapshot: Snapshot,
@@ -185,6 +188,7 @@ impl Renderer {
             moon_node,
             moon_lighting,
             moon_trail,
+            fps: Fps::new(),
             ui,
             snapshot: *snapshot,
         };
@@ -297,6 +301,7 @@ impl Renderer {
             render_body_hint(body, self.render_position(body), &self.camera, window);
         }
 
+        self.fps.frame();
         let mut events = self.ui.frame(window, sim_state, &*self);
         if !window.render_with_camera(&mut self.camera) {
             return vec![ControlEvent::Exit];
@@ -411,5 +416,9 @@ impl RenderState for Renderer {
 
     fn show_skybox(&self) -> bool {
         self.skybox.is_visible()
+    }
+
+    fn fps(&self) -> f64 {
+        self.fps.get()
     }
 }
