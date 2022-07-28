@@ -1,3 +1,4 @@
+use self::body_hint::render_body_hint;
 use self::body_material::*;
 use self::camera::*;
 use self::grid::Grid;
@@ -17,16 +18,13 @@ use crate::simulation::Snapshot;
 use crate::state::RenderState;
 use crate::state::SimulationState;
 
-use kiss3d::camera::Camera;
 use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Isometry3;
-use kiss3d::nalgebra::Point2;
 use kiss3d::nalgebra::Point3;
 use kiss3d::nalgebra::Point4;
 use kiss3d::nalgebra::Translation3;
 use kiss3d::nalgebra::UnitQuaternion;
-use kiss3d::nalgebra::Vector2;
 use kiss3d::nalgebra::Vector3;
 use kiss3d::resource::Material;
 use kiss3d::resource::MaterialManager;
@@ -38,6 +36,7 @@ use kiss3d::window::Window;
 use std::path::Path;
 use std::{cell::RefCell, rc::Rc};
 
+mod body_hint;
 mod body_material;
 mod camera;
 mod flat_material;
@@ -84,30 +83,10 @@ impl Renderer {
         window: &mut Window,
         initial_camera: &Choice<CameraSpec>,
     ) -> Self {
+        Self::init_materials();
+
         window.set_light(Light::StickToCamera);
         window.set_line_width(2.0);
-
-        // Init materials.
-        MaterialManager::get_global_manager(|m| {
-            m.add(
-                Rc::new(RefCell::new(
-                    Box::new(BodyMaterial::new()) as Box<dyn Material + 'static>
-                )),
-                "body",
-            );
-            m.add(
-                Rc::new(RefCell::new(
-                    Box::new(LinesMaterial::new()) as Box<dyn Material + 'static>
-                )),
-                "lines",
-            );
-            m.add(
-                Rc::new(RefCell::new(
-                    Box::new(FlatMaterial::new()) as Box<dyn Material + 'static>
-                )),
-                "flat",
-            );
-        });
 
         // Init the Sun. The sun uses the default material.
         let mut sun_node = window.add_sphere(Sun.radius());
@@ -122,32 +101,17 @@ impl Renderer {
         }));
 
         println!("Loading earth textures");
-        let earth_day_texture = TextureManager::get_global_manager(|tm| {
-            tm.add(Path::new("./media/2k_earth_daymap.jpg"), "earth-day")
-        });
-        let earth_night_texture = TextureManager::get_global_manager(|tm| {
-            tm.add(Path::new("./media/2k_earth_nightmap.jpg"), "earth-night")
-        });
-        let earth_day_blurred_texture = TextureManager::get_global_manager(|tm| {
-            tm.add(
-                Path::new("./media/2k_earth_daymap_blurred.jpg"),
-                "earth-day-blurred",
-            )
-        });
-        let earth_night_blurred_texture = TextureManager::get_global_manager(|tm| {
-            tm.add(
-                Path::new("./media/2k_earth_nightmap_blurred.jpg"),
-                "earth-night-blurred",
-            )
-        });
+        let earth_day_texture = Self::load_texture("2k_earth_daymap.jpg");
+        let earth_night_texture = Self::load_texture("2k_earth_nightmap.jpg");
+        let earth_day_blurred_texture = Self::load_texture("2k_earth_daymap_blurred.jpg");
+        let earth_night_blurred_texture = Self::load_texture("2k_earth_nightmap_blurred.jpg");
+
         let earth_lighting = Rc::new(RefCell::new(BodyLightingData {
             day_color: Point3::new(1.3, 1.3, 1.3),
             day_texture: None, // will be set each frame.
             night_color: Point3::new(0.9, 0.9, 0.9),
             night_texture: None, // will be set each frame.
-            normal_texture: Some(TextureManager::get_global_manager(|tm| {
-                tm.add(Path::new("./media/earth_normal.png"), "earth-normal-map")
-            })),
+            normal_texture: Some(Self::load_texture("earth_normal.png")),
             ..BodyLightingData::default()
         }));
         earth_node
@@ -186,16 +150,11 @@ impl Renderer {
         println!("Loading moon textures");
         let moon_lighting = Rc::new(RefCell::new(BodyLightingData {
             day_color: Point3::new(1.1, 1.1, 1.1),
-            day_texture: Some(TextureManager::get_global_manager(|tm| {
-                tm.add(Path::new("./media/2k_moon.jpg"), "moon")
-            })),
+            day_texture: Some(Self::load_texture("2k_moon.jpg")),
             //day_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
             night_color: Moon.props().color_vec() * 0.1,
             night_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
-            //normal_texture: None,
-            normal_texture: Some(TextureManager::get_global_manager(|tm| {
-                tm.add(Path::new("./media/moon_normal.jpg"), "moon-normal-map")
-            })),
+            normal_texture: Some(Self::load_texture("moon_normal.jpg")),
             ..BodyLightingData::default()
         }));
         moon_node
@@ -246,6 +205,34 @@ impl Renderer {
         println!("Rendering initialized");
 
         renderer
+    }
+
+    fn init_materials() {
+        MaterialManager::get_global_manager(|m| {
+            m.add(
+                Rc::new(RefCell::new(
+                    Box::new(BodyMaterial::new()) as Box<dyn Material + 'static>
+                )),
+                "body",
+            );
+            m.add(
+                Rc::new(RefCell::new(
+                    Box::new(LinesMaterial::new()) as Box<dyn Material + 'static>
+                )),
+                "lines",
+            );
+            m.add(
+                Rc::new(RefCell::new(
+                    Box::new(FlatMaterial::new()) as Box<dyn Material + 'static>
+                )),
+                "flat",
+            );
+        });
+    }
+
+    fn load_texture(file: &'static str) -> Rc<Texture> {
+        let path = format!("./media/{}", file);
+        TextureManager::get_global_manager(|tm| tm.add(Path::new(&path), file))
     }
 
     pub fn set_snapshot(&mut self, snapshot: &Snapshot) {
@@ -318,7 +305,7 @@ impl Renderer {
             .frame(self.abs_position(Moon), self.camera.focus());
 
         for body in [Sun, Earth, Moon] {
-            self.render_body_hint(&self.camera, window, body);
+            render_body_hint(body, self.render_position(body), &self.camera, window);
         }
 
         let mut events = self.ui.frame(window, sim_state, &*self);
@@ -331,56 +318,6 @@ impl Renderer {
             }
         }
         events
-    }
-
-    fn render_body_hint(&self, camera: &MyCamera, window: &mut Window, body: Body) {
-        let body_pos = self.render_position(body);
-
-        // Only show the hint if we see the object as very small.
-        let dist = (body_pos - camera.eye()).norm();
-        if dist < body.radius() * 200.0 {
-            return;
-        }
-
-        let projected =
-            Point3::from_homogeneous(camera.transformation() * body_pos.to_homogeneous()).unwrap();
-
-        if projected.z > 1.0 {
-            // Object behind us.
-            return;
-        }
-
-        let scale = 0.5 / window.scale_factor() as f32;
-        let point = Point2::new(
-            projected.x * window.width() as f32 * scale,
-            projected.y * window.height() as f32 * scale,
-        );
-
-        let color = Point3::new(
-            body.props().color.0,
-            body.props().color.1,
-            body.props().color.2,
-        );
-
-        let mut draw_line = |angle: f32| {
-            const START: f32 = 6.0;
-            const END: f32 = 14.0;
-            let rad = angle.to_radians();
-            let axis = Vector2::new(rad.cos(), rad.sin());
-
-            window.draw_planar_line(&(point + axis * START), &(point + axis * END), &color);
-        };
-
-        for a in [0, 90, 180, 270] {
-            // Earth gets the vertical cross-hairs; Moon gets the diagonal; Sun
-            // gets both.
-            if body == Sun || body == Earth {
-                draw_line(a as f32);
-            }
-            if body == Sun || body == Moon {
-                draw_line((a + 45) as f32);
-            }
-        }
     }
 
     fn transition_camera(&mut self, spec: &CameraSpec) {
