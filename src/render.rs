@@ -4,40 +4,38 @@ use self::grid::Grid;
 use self::lines_material::LinesMaterial;
 use self::trail::Trail;
 use self::ui::Ui;
+
 use crate::body::Body;
 use crate::body::Body::*;
 use crate::choice::Choice;
-use crate::choice::ChoiceSet;
-use crate::control::CameraDirection;
-use crate::control::CameraSpec;
+use crate::config::CameraDirection;
+use crate::config::CameraSpec;
 use crate::control::ControlEvent;
 use crate::render::flat_material::FlatMaterial;
 use crate::render::skybox::Skybox;
 use crate::simulation::Snapshot;
 use crate::state::RenderState;
 use crate::state::SimulationState;
-use kiss3d::camera::Camera;
 
+use kiss3d::camera::Camera;
 use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Isometry3;
 use kiss3d::nalgebra::Point2;
+use kiss3d::nalgebra::Point3;
 use kiss3d::nalgebra::Point4;
+use kiss3d::nalgebra::Translation3;
 use kiss3d::nalgebra::UnitQuaternion;
 use kiss3d::nalgebra::Vector2;
 use kiss3d::nalgebra::Vector3;
+use kiss3d::resource::Material;
 use kiss3d::resource::MaterialManager;
 use kiss3d::resource::Texture;
 use kiss3d::resource::TextureManager;
+use kiss3d::scene::SceneNode;
+use kiss3d::window::Window;
 
-use kiss3d::{
-    nalgebra::{Point3, Translation3},
-    resource::Material,
-    scene::SceneNode,
-    window::Window,
-};
 use std::path::Path;
-
 use std::{cell::RefCell, rc::Rc};
 
 mod body_material;
@@ -53,7 +51,7 @@ mod ui;
 pub struct Renderer {
     camera: MyCamera,
 
-    camera_focus: Choice<CameraSpec>,
+    camera_spec: Choice<CameraSpec>,
 
     grid: Grid,
     skybox: Skybox,
@@ -81,7 +79,11 @@ pub struct Renderer {
 const SHOW_EARTH_AXIS: bool = true;
 
 impl Renderer {
-    pub fn new(snapshot: &Snapshot, window: &mut Window) -> Self {
+    pub fn new(
+        snapshot: &Snapshot,
+        window: &mut Window,
+        initial_camera: &Choice<CameraSpec>,
+    ) -> Self {
         window.set_light(Light::StickToCamera);
         window.set_line_width(2.0);
 
@@ -214,40 +216,13 @@ impl Renderer {
         );
 
         let camera = MyCamera::new(-Ui::WIDTH * window.scale_factor());
-        let skybox = Skybox::new(window, 2e+10);
+        let skybox = Skybox::new(window, 4e+10);
         let grid = Grid::new(window, 20);
         let ui = Ui::new(window);
 
-        let camera_specs = [
-            CameraSpec {
-                focus: Earth,
-                direction: CameraDirection::FromAbove,
-                relative_dist: 10.0,
-                description: "Earth",
-            },
-            CameraSpec {
-                focus: Moon,
-                direction: CameraDirection::FromAbove,
-                relative_dist: 30.0,
-                description: "Moon",
-            },
-            CameraSpec {
-                focus: Moon,
-                direction: CameraDirection::FromBody(Earth),
-                relative_dist: 10.0,
-                description: "Moon phase",
-            },
-            CameraSpec {
-                focus: Sun,
-                direction: CameraDirection::FromAbove,
-                relative_dist: 10.0,
-                description: "Sun",
-            },
-        ];
-
         let mut renderer = Renderer {
             camera,
-            camera_focus: ChoiceSet::new(camera_specs).by_index(0),
+            camera_spec: initial_camera.clone(),
             grid,
             skybox,
             sun_node,
@@ -266,7 +241,7 @@ impl Renderer {
             snapshot: *snapshot,
         };
 
-        renderer.transition_camera(&renderer.camera_focus.get());
+        renderer.transition_camera(&renderer.camera_spec.get());
 
         println!("Rendering initialized");
 
@@ -283,7 +258,7 @@ impl Renderer {
         window: &mut Window,
         sim_state: &dyn SimulationState,
     ) -> Vec<ControlEvent> {
-        let cam_spec = self.camera_focus.get();
+        let cam_spec = self.camera_spec.get();
         let (focus, eye_dir) = self.focus_and_eye_dir(&cam_spec);
         self.camera.update(focus, eye_dir);
 
@@ -423,12 +398,12 @@ impl Renderer {
     pub fn handle_event(&mut self, event: &ControlEvent) {
         match event {
             ControlEvent::CycleCamera => {
-                self.camera_focus = self.camera_focus.circular_next();
-                self.transition_camera(&self.camera_focus.get());
+                self.camera_spec = self.camera_spec.circular_next();
+                self.transition_camera(&self.camera_spec.get());
             }
             ControlEvent::SetCamera(camera_focus) => {
-                self.camera_focus = camera_focus.clone();
-                self.transition_camera(&self.camera_focus.get());
+                self.camera_spec = camera_focus.clone();
+                self.transition_camera(&self.camera_spec.get());
             }
             ControlEvent::Reverse => {
                 self.earth_trail.reset();
@@ -497,7 +472,7 @@ impl Renderer {
 
 impl RenderState for Renderer {
     fn camera_focus(&self) -> Choice<CameraSpec> {
-        self.camera_focus.clone()
+        self.camera_spec.clone()
     }
 
     fn show_trails(&self) -> bool {

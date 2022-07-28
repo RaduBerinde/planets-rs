@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use kiss3d::event::{Action, Event, Key, WindowEvent};
 
-use crate::{body::Body, choice::Choice};
+use crate::{choice::Choice, config::CameraSpec};
 
 #[derive(Clone)]
 pub enum ControlEvent {
@@ -19,21 +19,6 @@ pub enum ControlEvent {
     ToggleEcliptic,
     ToggleSkybox,
     Exit,
-}
-
-#[derive(Clone, Copy)]
-pub struct CameraSpec {
-    pub focus: Body,
-    pub direction: CameraDirection,
-    // Distance from body, as a multiple of its radius.
-    pub relative_dist: f64,
-    pub description: &'static str,
-}
-
-#[derive(Clone, Copy)]
-pub enum CameraDirection {
-    FromAbove,
-    FromBody(Body),
 }
 
 thread_local! {

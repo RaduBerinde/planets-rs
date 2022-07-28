@@ -3,7 +3,7 @@ use std::{
     time::Instant,
 };
 
-use crate::{choice::ChoiceSet, state::SimulationState};
+use crate::{state::SimulationState};
 
 use self::seconds::Seconds;
 
@@ -35,21 +35,10 @@ enum State {
 }
 
 impl Simulation {
-    pub fn new(start: Snapshot) -> Self {
-        let speeds = [
-            chrono::Duration::minutes(1),
-            chrono::Duration::minutes(15),
-            chrono::Duration::hours(1),
-            chrono::Duration::hours(4),
-            chrono::Duration::days(1),
-            chrono::Duration::days(5),
-            chrono::Duration::days(30),
-            chrono::Duration::days(90),
-        ];
-
+    pub fn new(start: Snapshot, speed: &Choice<chrono::Duration>) -> Self {
         Simulation {
             current: start,
-            speed: ChoiceSet::new(speeds).by_index(2),
+            speed: speed.clone(),
             state: State::Stopped,
             reverse: false,
         }
@@ -151,8 +140,10 @@ impl Simulation {
     }
 
     pub fn reverse(&mut self) {
-        let mut s = self.stopped();
-        s.reverse = !s.reverse;
+        self.stop();
+        self.reverse = !self.reverse;
+        // We want to always start the simulation after reversing.
+        self.start();
     }
 
     pub fn handle_event(&mut self, ev: &ControlEvent) {
@@ -161,7 +152,9 @@ impl Simulation {
             ControlEvent::SetSpeed(s) => self.adjust_speed(s.clone()),
             ControlEvent::Faster => self.adjust_speed(self.speed.next()),
             ControlEvent::Slower => self.adjust_speed(self.speed.prev()),
-            ControlEvent::Reverse => self.reverse(),
+            ControlEvent::Reverse => {
+                self.reverse();
+            }
             ControlEvent::JumpForward | ControlEvent::JumpBack => {
                 if !self.is_running() {
                     let old_reverse = self.reverse;

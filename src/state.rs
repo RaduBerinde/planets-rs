@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::{choice::Choice, control::CameraSpec};
+use crate::{choice::Choice, config::CameraSpec};
 
 // SimulationState is a trait used to inform the UI on the current state of the
 // simulation.
