@@ -1,7 +1,7 @@
 use std::f64::consts::PI;
 
 use chrono::{DateTime, TimeZone, Timelike, Utc};
-use kiss3d::nalgebra::{Point3, Unit, UnitQuaternion, Vector3};
+use kiss3d::nalgebra::{Point3, Point4, Unit, UnitQuaternion, Vector3};
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Body {
@@ -25,6 +25,15 @@ impl Body {
 
     pub fn radius64(&self) -> f64 {
         self.props().radius
+    }
+
+    pub fn color3(&self) -> Point3<f32> {
+        let p = self.props();
+        Point3::new(p.color.0, p.color.1, p.color.2)
+    }
+    pub fn color4(&self, alpha: f32) -> Point4<f32> {
+        let p = self.props();
+        Point4::new(p.color.0, p.color.1, p.color.2, alpha)
     }
 }
 
@@ -59,10 +68,6 @@ impl BodyProperties {
         radius: 1737.5,
         color: (0.7, 0.7, 0.7),
     };
-
-    pub fn color_vec(&self) -> Point3<f32> {
-        Point3::new(self.color.0, self.color.1, self.color.2)
-    }
 }
 
 const EARTH_TROPICAL_YEAR: f64 = 365.2412 * 24.0 * 3600.0;

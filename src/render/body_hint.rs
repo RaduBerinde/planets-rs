@@ -31,12 +31,7 @@ pub fn render_body_hint(
         projected.y * window.height() as f32 * scale,
     );
 
-    let color = Point3::new(
-        body.props().color.0,
-        body.props().color.1,
-        body.props().color.2,
-    );
-
+    let color = body.color3();
     let mut draw_line = |angle: f32| {
         const START: f32 = 6.0;
         const END: f32 = 14.0;

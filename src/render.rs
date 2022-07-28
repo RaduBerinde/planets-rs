@@ -22,7 +22,6 @@ use kiss3d::light::Light;
 use kiss3d::nalgebra;
 use kiss3d::nalgebra::Isometry3;
 use kiss3d::nalgebra::Point3;
-use kiss3d::nalgebra::Point4;
 use kiss3d::nalgebra::Translation3;
 use kiss3d::nalgebra::UnitQuaternion;
 use kiss3d::nalgebra::Vector3;
@@ -86,7 +85,7 @@ impl Renderer {
         Self::init_materials();
 
         window.set_light(Light::StickToCamera);
-        window.set_line_width(2.0);
+        window.set_line_width(2.0); // For body hints.
 
         // Init the Sun. The sun uses the default material.
         let mut sun_node = window.add_sphere(Sun.radius());
@@ -133,12 +132,7 @@ impl Renderer {
             window,
             2e9, // Earth orbit length is about 1e9
             1000,
-            Point4::new(
-                Earth.props().color.0,
-                Earth.props().color.1,
-                Earth.props().color.2,
-                0.6,
-            ),
+            Earth.color4(0.6),
         );
 
         // Init the Moon. The moon also uses our custom body material.
@@ -152,7 +146,7 @@ impl Renderer {
             day_color: Point3::new(1.1, 1.1, 1.1),
             day_texture: Some(Self::load_texture("2k_moon.jpg")),
             //day_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
-            night_color: Moon.props().color_vec() * 0.1,
+            night_color: Moon.color3() * 0.1,
             night_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
             normal_texture: Some(Self::load_texture("moon_normal.jpg")),
             ..BodyLightingData::default()
@@ -166,12 +160,7 @@ impl Renderer {
             window,
             1e9, // Earth orbit length is about 1e9
             1000,
-            Point4::new(
-                Moon.props().color.0,
-                Moon.props().color.1,
-                Moon.props().color.2,
-                0.6,
-            ),
+            Moon.color4(0.6),
         );
 
         let camera = MyCamera::new(-Ui::WIDTH * window.scale_factor());
