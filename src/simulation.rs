@@ -3,7 +3,7 @@ use std::{
     time::Instant,
 };
 
-use crate::{state::SimulationState};
+use crate::{config::Preset, state::SimulationState};
 
 use self::seconds::Seconds;
 
@@ -17,7 +17,8 @@ mod snapshot;
 pub use snapshot::Snapshot;
 
 pub struct Simulation {
-    pub current: Snapshot,
+    preset: Choice<Preset>,
+    current: Snapshot,
     // Simulated duration per elapsed second.
     speed: Choice<chrono::Duration>,
     reverse: bool,
@@ -35,13 +36,18 @@ enum State {
 }
 
 impl Simulation {
-    pub fn new(start: Snapshot, speed: &Choice<chrono::Duration>) -> Self {
+    pub fn new(preset: &Choice<Preset>, speed: &Choice<chrono::Duration>) -> Self {
         Simulation {
-            current: start,
+            preset: preset.clone(),
+            current: preset.snapshot,
             speed: speed.clone(),
             state: State::Stopped,
             reverse: false,
         }
+    }
+
+    pub fn current(&self) -> Snapshot {
+        self.current
     }
 
     pub fn start(&mut self) {
@@ -164,6 +170,10 @@ impl Simulation {
                     self.reverse = old_reverse;
                 }
             }
+            ControlEvent::LoadPreset(preset) => {
+                self.preset = preset.clone();
+                self.stopped().current = self.preset.snapshot;
+            }
             _ => {}
         }
     }
@@ -183,6 +193,9 @@ impl Simulation {
 }
 
 impl SimulationState for Simulation {
+    fn preset(&self) -> Choice<Preset> {
+        self.preset.clone()
+    }
     fn timestamp(&self) -> DateTime<Utc> {
         self.current.timestamp
     }

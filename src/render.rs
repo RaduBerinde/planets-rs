@@ -81,7 +81,7 @@ const SHOW_EARTH_AXIS: bool = true;
 
 impl Renderer {
     pub fn new(
-        snapshot: &Snapshot,
+        snapshot: Snapshot,
         window: &mut Window,
         initial_camera: &Choice<CameraSpec>,
     ) -> Self {
@@ -190,7 +190,7 @@ impl Renderer {
             moon_trail,
             fps: Fps::new(),
             ui,
-            snapshot: *snapshot,
+            snapshot,
         };
 
         renderer.transition_camera(&renderer.camera_spec.get());
@@ -228,8 +228,8 @@ impl Renderer {
         TextureManager::get_global_manager(|tm| tm.add(Path::new(&path), file))
     }
 
-    pub fn set_snapshot(&mut self, snapshot: &Snapshot) {
-        self.snapshot = *snapshot
+    pub fn set_snapshot(&mut self, snapshot: Snapshot) {
+        self.snapshot = snapshot
     }
 
     // Returns false if the window should be closed.
@@ -307,7 +307,7 @@ impl Renderer {
             return vec![ControlEvent::Exit];
         }
         for mut event in window.events().iter() {
-            if let Some(ev) = ControlEvent::from_window_event(&mut event) {
+            if let Some(ev) = ControlEvent::from_window_event(&mut event, sim_state) {
                 events.push(ev);
             }
         }
@@ -336,7 +336,7 @@ impl Renderer {
                 self.camera_spec = camera_focus.clone();
                 self.transition_camera(&self.camera_spec.get());
             }
-            ControlEvent::Reverse => {
+            ControlEvent::Reverse | ControlEvent::LoadPreset(..) => {
                 self.earth_trail.reset();
                 self.moon_trail.reset();
             }

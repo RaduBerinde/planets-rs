@@ -1,11 +1,19 @@
 use crate::{
     body::Body,
     choice::{Choice, ChoiceSet},
+    simulation::Snapshot,
 };
 
 pub struct Config {
+    pub initial_preset: Choice<Preset>,
     pub initial_camera: Choice<CameraSpec>,
     pub initial_speed: Choice<chrono::Duration>,
+}
+
+#[derive(Clone, Copy)]
+pub struct Preset {
+    pub name: &'static str,
+    pub snapshot: Snapshot,
 }
 
 #[derive(Clone, Copy)]
@@ -25,6 +33,18 @@ pub enum CameraDirection {
 
 impl Config {
     pub fn default() -> Self {
+        let presets = [
+            Preset {
+                name: "test - no moon inclination",
+                snapshot: Snapshot::test1(),
+            },
+            Preset {
+                name: "test - high moon inclination",
+                snapshot: Snapshot::test2(),
+            },
+        ];
+        let initial_preset = ChoiceSet::new(presets).by_index(0);
+
         let camera_specs = [
             CameraSpec {
                 focus: Body::Earth,
@@ -65,6 +85,7 @@ impl Config {
         ];
         let initial_speed = ChoiceSet::new(speeds).by_index(2);
         Self {
+            initial_preset,
             initial_camera,
             initial_speed,
         }

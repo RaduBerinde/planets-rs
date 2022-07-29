@@ -24,7 +24,6 @@ impl Ui {
         let conrod_ui = window.conrod_ui_mut();
         let font_id = conrod_ui
             .fonts
-            //.insert_from_file("media/UbuntuMono-R.ttf")
             .insert_from_file("media/NotoSansMono-CondensedMedium.ttf")
             .expect("cannot load font");
         conrod_ui.theme = Self::theme(Some(font_id));
@@ -78,10 +77,15 @@ impl Ui {
 
         self.simulation_controls(ui, sim_state, &mut events);
         self.simulation_speed(ui, sim_state, &mut events);
+        self.simulation_presets(ui, sim_state, &mut events);
         self.camera_focus(ui, render_state, &mut events);
         self.render_toggles(ui, render_state, &mut events);
 
-        widget::Text::new(&format!("fps: {:.1}", render_state.fps()))
+        // widget::Text::new(&format!("Loaded {}", sim_state.preset().name))
+        //     .font_size(12)
+        //     .mid_left_of(self.ids.footer)
+        //     .set(self.ids.footer_msg, ui);
+        widget::Text::new(&format!("fps:{:.1}", render_state.fps()))
             .font_size(12)
             .mid_right_of(self.ids.footer)
             .set(self.ids.fps, ui);
@@ -210,6 +214,42 @@ impl Ui {
         }
     }
 
+    fn simulation_presets(
+        &self,
+        ui: &mut UiCell,
+        sim_state: &dyn SimulationState,
+        events: &mut Vec<ControlEvent>,
+    ) {
+        widget::Text::new("Load:")
+            .font_size(12)
+            .align_left_of(self.ids.canvas)
+            .x_place_on(self.ids.canvas, Place::Start(Some(2.0)))
+            .down_from(self.ids.speed_1, 30.0)
+            .set(self.ids.preset_title, ui);
+        let current_preset = sim_state.preset();
+        let presets: Vec<String> = current_preset
+            .choice_set()
+            .iter()
+            .map(|p| p.name.to_string())
+            .collect();
+
+        for selected_idx in widget::DropDownList::new(
+            &presets,
+            Some(current_preset.index() as widget::drop_down_list::Idx),
+        )
+        .right(10.0)
+        .align_middle_y()
+        .w_h(210.0, 25.0)
+        .color(color::DARK_CHARCOAL)
+        .label_y(Relative::Scalar(1.0))
+        .set(self.ids.preset_list, ui)
+        {
+            events.push(ControlEvent::LoadPreset(
+                current_preset.choice_set().by_index(selected_idx),
+            ));
+        }
+    }
+
     fn camera_focus(
         &self,
         ui: &mut UiCell,
@@ -220,7 +260,7 @@ impl Ui {
             ui,
             self.ids.camera_title,
             "Camera",
-            self.ids.speed_1,
+            self.ids.preset_title,
             30.0,
             &render_state.camera_focus(),
             |&d| d.description.to_string(),
@@ -364,7 +404,6 @@ impl Ui {
             .set(rect_id, ui);
 
         widget::Circle::outline(6.0)
-            .color(color::BLACK)
             .color(if is_set {
                 color::BLACK
             } else {
@@ -432,6 +471,8 @@ widget_ids! {
         speed_7,
         speed_8,
         speed_9,
+        preset_title,
+        preset_list,
         camera_title,
         camera_1,
         camera_2,
@@ -451,6 +492,7 @@ widget_ids! {
         skybox_toggle_title,
         skybox_toggle_rect,
         skybox_toggle_circle,
+        footer_msg,
         fps,
     }
 }
