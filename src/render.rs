@@ -64,6 +64,7 @@ pub struct Renderer {
     earth_night_texture: Rc<Texture>,
     earth_day_blurred_texture: Rc<Texture>,
     earth_night_blurred_texture: Rc<Texture>,
+    earth_normal_texture: Rc<Texture>,
     earth_axis: Option<SceneNode>,
     earth_trail: Trail,
 
@@ -107,13 +108,14 @@ impl Renderer {
         let earth_night_texture = Self::load_texture("2k_earth_nightmap.jpg");
         let earth_day_blurred_texture = Self::load_texture("2k_earth_daymap_blurred.jpg");
         let earth_night_blurred_texture = Self::load_texture("2k_earth_nightmap_blurred.jpg");
+        let earth_normal_texture = Self::load_texture("earth_normal.png");
 
         let earth_lighting = Rc::new(RefCell::new(BodyLightingData {
             day_color: Point3::new(1.3, 1.3, 1.3),
             day_texture: None, // will be set each frame.
             night_color: Point3::new(0.9, 0.9, 0.9),
-            night_texture: None, // will be set each frame.
-            normal_texture: Some(Self::load_texture("earth_normal.png")),
+            night_texture: None,  // will be set each frame.
+            normal_texture: None, // will be set each frame.
             ..BodyLightingData::default()
         }));
         earth_node
@@ -183,6 +185,7 @@ impl Renderer {
             earth_night_texture,
             earth_day_blurred_texture,
             earth_night_blurred_texture,
+            earth_normal_texture,
             earth_axis,
             earth_trail,
             moon_node,
@@ -270,9 +273,11 @@ impl Renderer {
             if !blur_earth {
                 earth_lighting.day_texture = Some(Rc::clone(&self.earth_day_texture));
                 earth_lighting.night_texture = Some(Rc::clone(&self.earth_night_texture));
+                earth_lighting.normal_texture = Some(Rc::clone(&self.earth_normal_texture));
             } else {
                 earth_lighting.day_texture = Some(Rc::clone(&self.earth_day_blurred_texture));
                 earth_lighting.night_texture = Some(Rc::clone(&self.earth_night_blurred_texture));
+                earth_lighting.normal_texture = None
             }
             earth_lighting.light_pos = self.render_position(Sun);
             earth_lighting.light_radius = Sun.radius();
