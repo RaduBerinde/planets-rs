@@ -86,6 +86,7 @@ impl Renderer {
         window: &mut Window,
         initial_camera: &Choice<CameraSpec>,
     ) -> Self {
+        TextureManager::get_global_manager(|tm| tm.set_generate_mipmaps(true));
         Self::init_materials();
 
         window.set_light(Light::StickToCamera);

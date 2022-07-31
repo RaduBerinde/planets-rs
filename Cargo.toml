@@ -7,8 +7,9 @@ edition = "2021"
 
 [dependencies]
 # kiss3d = "0.30"
-kiss3d = { git = "https://github.com/sebcrozet/kiss3d.git", rev = "63b7389", features = ["conrod"] }
-# kiss3d = { path = "../kiss3d" }
+#kiss3d = { path = "../kiss3d", features = ["conrod"]}
+#kiss3d = { git = "https://github.com/sebcrozet/kiss3d.git", rev = "63b7389", features = ["conrod"] }
+kiss3d = { git = "https://github.com/RaduBerinde/kiss3d.git", rev = "294fce0e", features = ["conrod"] }
 rand = "0.8.5"
 chrono = "0.4"
 #enum-iterator = "1.1.3"
