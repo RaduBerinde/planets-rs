@@ -1,6 +1,10 @@
 use config::Config;
 use control::ControlEvent;
-use kiss3d::window::{CanvasSetup, NumSamples, Window};
+use kiss3d::{
+    nalgebra::{Point2, Point3},
+    text::Font,
+    window::{CanvasSetup, NumSamples, Window},
+};
 use render::Renderer;
 use simulation::Simulation;
 
@@ -18,7 +22,14 @@ fn main() {
         samples: NumSamples::Zero,
     };
     let mut window = Window::new_with_setup("planets-rs", 1200, 800, setup);
-    // Do an initial render so we can at least see a black window while initializing.
+    // Do an initial render before we initialize.
+    window.draw_text(
+        "Loading textures..",
+        &Point2::new(200.0, 200.0),
+        100.0,
+        &Font::default(),
+        &Point3::new(0.8, 0.8, 0.8),
+    );
     window.render();
     let config = Config::default();
     let mut sim = Simulation::new(&config.initial_preset, &config.initial_speed);

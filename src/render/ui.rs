@@ -289,7 +289,7 @@ impl Ui {
         if self.toggle_switch(
             ui,
             self.ids.ecliptic_toggle_title,
-            "Ecliptic plane",
+            "J2000.0 orbital plane",
             ui.maybe_prev_widget().unwrap(),
             Relative::Direction(Direction::Backwards, 20.0),
             render_state.show_ecliptic(),
