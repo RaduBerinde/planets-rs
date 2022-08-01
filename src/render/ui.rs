@@ -233,7 +233,7 @@ impl Ui {
             .map(|p| p.name.to_string())
             .collect();
 
-        for selected_idx in widget::DropDownList::new(
+        if let Some(selected_idx) = widget::DropDownList::new(
             &presets,
             Some(current_preset.index() as widget::drop_down_list::Idx),
         )

@@ -15,7 +15,7 @@ pub struct Snapshot {
 const EARTH_APHELION: f64 = 152.10e6;
 
 impl Snapshot {
-    pub fn solar_eclipse_2017() -> Snapshot {
+    pub fn solar_eclipse_aug_2017() -> Snapshot {
         // Data from https://ssd.jpl.nasa.gov/horizons/app.html
         //   - Vector table
         //   - Target body: Earth/Luna
@@ -28,9 +28,9 @@ impl Snapshot {
         // Moon:
         //   X = 1.287626991572680E+08 Y =-7.878974778529878E+07 Z = 4.510853649180382E+03
         //   VX= 1.446304692640349E+01 VY= 2.444380218816157E+01 VZ= 9.547778835418086E-02
-
+        #[allow(clippy::excessive_precision)]
         Snapshot {
-            timestamp: Utc.ymd(2017, 08, 21).and_hms(15, 46, 48),
+            timestamp: Utc.ymd(2017, 8, 21).and_hms(15, 46, 48),
             earth_position: Point3::new(
                 1.290745457486534E+08,
                 -7.899200932997707E+07,
@@ -54,6 +54,41 @@ impl Snapshot {
         }
     }
 
+    pub fn lunar_eclipse_may_2022() -> Snapshot {
+        // Data obtained as above.
+        // Earth:
+        //   X =-8.698598672690395E+07 Y =-1.237132786667059E+08 Z = 6.674273178458214E+03
+        //   VX= 2.387276880809248E+01 VY=-1.723966486848198E+01 VZ= 1.953072531164501E-03
+        // Moon:
+        //   X =-8.720249905686758E+07 Y =-1.240039134908936E+08 Z = 6.046639699906111E+03
+        //   VX= 2.475907992617419E+01 VY=-1.786132315008197E+01 VZ=-9.810927783777057E-02
+        #[allow(clippy::excessive_precision)]
+        Snapshot {
+            timestamp: Utc.ymd(2022, 5, 16).and_hms(1, 32, 7),
+            earth_position: Point3::new(
+                -8.698598672690395E+07,
+                -1.237132786667059E+08,
+                6.674273178458214E+03,
+            ),
+            earth_velocity: Vector3::new(
+                2.387276880809248E+01,
+                -1.723966486848198E+01,
+                1.953072531164501E-03,
+            ),
+            moon_position: Point3::new(
+                -8.720249905686758E+07,
+                -1.240039134908936E+08,
+                6.046639699906111E+03,
+            ),
+            moon_velocity: Vector3::new(
+                2.475907992617419E+01,
+                -1.786132315008197E+01,
+                -9.810927783777057E-02,
+            ),
+        }
+    }
+
+    #[allow(dead_code)]
     pub fn test_no_moon_inclination() -> Snapshot {
         Snapshot {
             timestamp: Utc.ymd(2000, 1, 1).and_hms(0, 0, 0),
@@ -64,6 +99,7 @@ impl Snapshot {
         }
     }
 
+    #[allow(dead_code)]
     pub fn test_high_moon_inclination() -> Snapshot {
         Snapshot {
             timestamp: Utc.ymd(2000, 1, 1).and_hms(0, 0, 0),

@@ -36,16 +36,20 @@ impl Config {
         let presets = [
             Preset {
                 name: "Solar eclipse Aug 2017",
-                snapshot: Snapshot::solar_eclipse_2017(),
+                snapshot: Snapshot::solar_eclipse_aug_2017(),
             },
             Preset {
-                name: "test - no moon inclination",
-                snapshot: Snapshot::test_no_moon_inclination(),
+                name: "Lunar eclipse May 2022",
+                snapshot: Snapshot::lunar_eclipse_may_2022(),
             },
-            Preset {
-                name: "test - high moon inclination",
-                snapshot: Snapshot::test_high_moon_inclination(),
-            },
+            // Preset {
+            //     name: "test - no moon inclination",
+            //     snapshot: Snapshot::test_no_moon_inclination(),
+            // },
+            // Preset {
+            //     name: "test - high moon inclination",
+            //     snapshot: Snapshot::test_high_moon_inclination(),
+            // },
         ];
         let initial_preset = ChoiceSet::new(presets).by_index(0);
 
