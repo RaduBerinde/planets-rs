@@ -5,7 +5,7 @@ use std::{
 
 use kiss3d::{
     nalgebra::{Translation3, UnitQuaternion, Vector3},
-    resource::MaterialManager,
+    resource::{MaterialManager, TextureManager},
     scene::SceneNode,
     window::Window,
 };
@@ -20,6 +20,7 @@ impl Skybox {
         let half_size = size * 0.5;
         let mut node = window.add_group();
 
+        TextureManager::get_global_manager(|tm| tm.set_generate_mipmaps(false));
         println!("Loading skybox textures");
         let path = |suffix: &str| format!("./media/skybox_{}.png", suffix);
         //let path = |suffix: &str| format!("./media/test_{}.png", suffix);
