@@ -172,7 +172,9 @@ impl Simulation {
             }
             ControlEvent::LoadPreset(preset) => {
                 self.preset = preset.clone();
-                self.stopped().current = self.preset.snapshot;
+                let mut s = self.stopped();
+                s.current = s.preset.snapshot;
+                s.reverse = false;
             }
             _ => {}
         }
