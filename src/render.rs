@@ -114,7 +114,7 @@ impl Renderer {
         let earth_lighting = Rc::new(RefCell::new(BodyLightingData {
             day_color: Point3::new(1.3, 1.3, 1.3),
             day_texture: None, // will be set each frame.
-            night_color: Point3::new(0.9, 0.9, 0.9),
+            night_color: Point3::new(5.0, 5.0, 5.0),
             night_texture: None,  // will be set each frame.
             normal_texture: None, // will be set each frame.
             ..BodyLightingData::default()
@@ -152,8 +152,10 @@ impl Renderer {
             day_color: Point3::new(1.1, 1.1, 1.1),
             day_texture: Some(Self::load_texture("2k_moon.jpg")),
             //day_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
-            night_color: Moon.color3() * 0.1,
-            night_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
+            night_color: Point3::new(1.1, 1.1, 1.1),
+            night_texture: Some(Self::load_texture("2k_moon.jpg")),
+            //night_color: Moon.color3() * 0.1,
+            //night_texture: Some(TextureManager::get_global_manager(|tm| tm.get_default())),
             normal_texture: Some(Self::load_texture("moon_normal.jpg")),
             ..BodyLightingData::default()
         }));
