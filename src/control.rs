@@ -19,12 +19,13 @@ pub enum ControlEvent {
     ToggleTrails,
     ToggleEcliptic,
     ToggleSkybox,
+    ToggleEarthAxis,
     Exit,
 }
 
 // Keyboard shortcut mappings. THe help message shows the mappings in this
 // order.
-const KEY_MAP: [(Key, ControlEvent); 12] = [
+const KEY_MAP: [(Key, ControlEvent); 13] = [
     (Key::Tab, ControlEvent::CycleCamera),
     (Key::Space, ControlEvent::StartStop),
     (Key::Equals, ControlEvent::Faster),
@@ -37,6 +38,7 @@ const KEY_MAP: [(Key, ControlEvent); 12] = [
     (Key::T, ControlEvent::ToggleTrails),
     (Key::G, ControlEvent::ToggleEcliptic),
     (Key::S, ControlEvent::ToggleSkybox),
+    (Key::X, ControlEvent::ToggleEarthAxis),
 ];
 
 impl ControlEvent {

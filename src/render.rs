@@ -65,7 +65,7 @@ pub struct Renderer {
     earth_day_blurred_texture: Rc<Texture>,
     earth_night_blurred_texture: Rc<Texture>,
     earth_normal_texture: Rc<Texture>,
-    earth_axis: Option<SceneNode>,
+    earth_axis: SceneNode,
     earth_trail: Trail,
 
     moon_node: SceneNode,
@@ -77,8 +77,6 @@ pub struct Renderer {
 
     snapshot: Snapshot,
 }
-
-const SHOW_EARTH_AXIS: bool = true;
 
 impl Renderer {
     pub fn new(
@@ -124,15 +122,8 @@ impl Renderer {
             .get_object_mut()
             .set_user_data(Box::new(Rc::clone(&earth_lighting)));
 
-        let earth_axis = match SHOW_EARTH_AXIS {
-            false => None,
-            true => {
-                let mut scene_node =
-                    window.add_cylinder(Earth.radius() * 0.01, Earth.radius() * 3.0);
-                scene_node.set_color(0.5, 0.5, 0.05);
-                Some(scene_node)
-            }
-        };
+        let mut earth_axis = window.add_cylinder(Earth.radius() * 0.01, Earth.radius() * 3.0);
+        earth_axis.set_color(0.5, 0.5, 0.05);
 
         let earth_trail = Trail::new(
             window,
@@ -262,12 +253,8 @@ impl Renderer {
         self.earth_node
             .set_local_transformation(earth_transformation);
 
-        if self.earth_axis.is_some() {
-            self.earth_axis
-                .as_mut()
-                .unwrap()
-                .set_local_transformation(earth_transformation);
-        }
+        self.earth_axis
+            .set_local_transformation(earth_transformation);
 
         {
             let mut earth_lighting = self.earth_lighting.borrow_mut();
@@ -359,6 +346,9 @@ impl Renderer {
             ControlEvent::ToggleSkybox => {
                 self.skybox.set_visible(!self.skybox.is_visible());
             }
+            ControlEvent::ToggleEarthAxis => {
+                self.earth_axis.set_visible(!self.earth_axis.is_visible());
+            }
             _ => {}
         }
     }
@@ -424,6 +414,10 @@ impl RenderState for Renderer {
 
     fn show_skybox(&self) -> bool {
         self.skybox.is_visible()
+    }
+
+    fn show_earth_axis(&self) -> bool {
+        self.earth_axis.is_visible()
     }
 
     fn fps(&self) -> f64 {

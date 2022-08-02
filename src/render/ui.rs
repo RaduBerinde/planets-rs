@@ -299,6 +299,17 @@ impl Ui {
 
         if self.toggle_switch(
             ui,
+            self.ids.earth_axis_toggle_title,
+            "Earth axis",
+            ui.maybe_prev_widget().unwrap(),
+            Relative::Direction(Direction::Backwards, 20.0),
+            render_state.show_earth_axis(),
+        ) {
+            events.push(ControlEvent::ToggleEarthAxis)
+        }
+
+        if self.toggle_switch(
+            ui,
             self.ids.skybox_toggle_title,
             "Star background",
             ui.maybe_prev_widget().unwrap(),
@@ -489,6 +500,9 @@ widget_ids! {
         ecliptic_toggle_title,
         ecliptic_toggle_rect,
         ecliptic_toggle_circle,
+        earth_axis_toggle_title,
+        earth_axis_toggle_rect,
+        earth_axis_toggle_circle,
         skybox_toggle_title,
         skybox_toggle_rect,
         skybox_toggle_circle,
