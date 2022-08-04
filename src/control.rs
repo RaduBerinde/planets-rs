@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use kiss3d::event::{Action, Event, Key, WindowEvent};
 
 use crate::choice::Choice;
@@ -20,25 +22,27 @@ pub enum ControlEvent {
     ToggleEcliptic,
     ToggleSkybox,
     ToggleEarthAxis,
+    ToggleHelp,
     Exit,
 }
 
 // Keyboard shortcut mappings. THe help message shows the mappings in this
 // order.
-const KEY_MAP: [(Key, ControlEvent); 13] = [
-    (Key::Tab, ControlEvent::CycleCamera),
+const KEY_MAP: [(Key, ControlEvent); 14] = [
     (Key::Space, ControlEvent::StartStop),
+    (Key::Tab, ControlEvent::CycleCamera),
     (Key::Equals, ControlEvent::Faster),
     (Key::Minus, ControlEvent::Slower),
     (Key::R, ControlEvent::Reverse),
     (Key::Left, ControlEvent::JumpBack),
     (Key::Right, ControlEvent::JumpForward),
-    (Key::Escape, ControlEvent::Exit),
-    (Key::Q, ControlEvent::Exit),
     (Key::T, ControlEvent::ToggleTrails),
     (Key::G, ControlEvent::ToggleEcliptic),
     (Key::S, ControlEvent::ToggleSkybox),
     (Key::X, ControlEvent::ToggleEarthAxis),
+    (Key::H, ControlEvent::ToggleHelp),
+    (Key::Escape, ControlEvent::Exit),
+    (Key::Q, ControlEvent::Exit),
 ];
 
 impl ControlEvent {
@@ -68,13 +72,45 @@ impl ControlEvent {
         None
     }
 
-    // pub fn description(&self) -> &'static str {
-    //     match self {
-    //         ControlEvent::CycleCamera => "Cycle camera focus",
-    //         ControlEvent::StartStop => "Start/stop simulation",
-    //         ControlEvent::Faster => "Increase the simulation speed",
-    //         ControlEvent::Slower => "Decrease the simulation speed",
-    //         ControlEvent::Reverse => "Reverse simulation",
-    //     }
-    // }
+    pub fn description(&self) -> &'static str {
+        match self {
+            ControlEvent::CycleCamera => "Cycle camera focus",
+            ControlEvent::StartStop => "Start/stop simulation",
+            ControlEvent::Faster => "Increase the simulation speed",
+            ControlEvent::Slower => "Decrease the simulation speed",
+            ControlEvent::Reverse => "Reverse simulation",
+            ControlEvent::SetCamera(_) => "Set camera focus",
+            ControlEvent::JumpForward => "Jump forward",
+            ControlEvent::JumpBack => "Jump backward",
+            ControlEvent::SetSpeed(_) => "Set simulation speed",
+            ControlEvent::LoadPreset(_) => "Load simulation preset",
+            ControlEvent::ToggleTrails => "Toggle rendering of trails",
+            ControlEvent::ToggleEcliptic => "Toggle rendering of orbital plane",
+            ControlEvent::ToggleSkybox => "Toggle sky background",
+            ControlEvent::ToggleEarthAxis => "Toggle earth axis",
+            ControlEvent::ToggleHelp => "Toggle help",
+            ControlEvent::Exit => "Exit",
+        }
+    }
+}
+
+pub fn help_text() -> String {
+    let mut entries: Vec<(String, &'static str)> = vec![
+        ("Mouse scroll".to_string(), "Zoom camera"),
+        ("Click + drag".to_string(), "Rotate camera"),
+    ];
+    for (k, e) in &KEY_MAP {
+        if !matches!(e, ControlEvent::Exit) {
+            entries.push((format!("{:?}", k), e.description()));
+        }
+    }
+    entries.push(("1, 2".to_string(), "Load preset"));
+    entries.push(("Q, Esc".to_string(), ControlEvent::Exit.description()));
+    let width = entries.iter().map(|e| e.0.len()).max().unwrap();
+
+    let mut s = String::new();
+    for e in entries {
+        let _ = writeln!(&mut s, "{:^width$}  {}", e.0, e.1, width = width);
+    }
+    s
 }

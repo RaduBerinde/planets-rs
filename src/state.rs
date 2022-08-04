@@ -23,5 +23,6 @@ pub trait RenderState {
     fn show_ecliptic(&self) -> bool;
     fn show_skybox(&self) -> bool;
     fn show_earth_axis(&self) -> bool;
+    fn show_help(&self) -> bool;
     fn fps(&self) -> f64;
 }

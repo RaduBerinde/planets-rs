@@ -349,6 +349,9 @@ impl Renderer {
             ControlEvent::ToggleEarthAxis => {
                 self.earth_axis.set_visible(!self.earth_axis.is_visible());
             }
+            ControlEvent::ToggleHelp => {
+                self.ui.show_help = !self.ui.show_help;
+            }
             _ => {}
         }
     }
@@ -418,6 +421,10 @@ impl RenderState for Renderer {
 
     fn show_earth_axis(&self) -> bool {
         self.earth_axis.is_visible()
+    }
+
+    fn show_help(&self) -> bool {
+        self.ui.show_help
     }
 
     fn fps(&self) -> f64 {

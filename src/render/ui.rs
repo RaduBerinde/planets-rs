@@ -9,10 +9,11 @@ use kiss3d::{
 };
 
 use crate::choice::Choice;
-use crate::control::ControlEvent;
+use crate::control::{self, ControlEvent};
 use crate::state::{RenderState, SimulationState};
 
 pub struct Ui {
+    pub show_help: bool,
     ids: Ids,
 }
 
@@ -28,8 +29,10 @@ impl Ui {
             .expect("cannot load font");
         conrod_ui.theme = Self::theme(Some(font_id));
 
-        let ids = Ids::new(conrod_ui.widget_id_generator());
-        Self { ids }
+        Self {
+            show_help: false,
+            ids: Ids::new(conrod_ui.widget_id_generator()),
+        }
     }
 
     pub fn frame(
@@ -81,14 +84,19 @@ impl Ui {
         self.camera_focus(ui, render_state, &mut events);
         self.render_toggles(ui, render_state, &mut events);
 
-        // widget::Text::new(&format!("Loaded {}", sim_state.preset().name))
-        //     .font_size(12)
-        //     .mid_left_of(self.ids.footer)
-        //     .set(self.ids.footer_msg, ui);
+        widget::Text::new("Press H for help")
+            .font_size(12)
+            .mid_left_of(self.ids.footer)
+            .set(self.ids.footer_msg, ui);
         widget::Text::new(&format!("fps:{:.1}", render_state.fps()))
             .font_size(12)
             .mid_right_of(self.ids.footer)
             .set(self.ids.fps, ui);
+
+        if self.show_help {
+            self.help(ui);
+        }
+
         events
     }
 
@@ -428,6 +436,21 @@ impl Ui {
         clicked
     }
 
+    fn help(&self, ui: &mut UiCell) {
+        widget::Canvas::new()
+            .bottom_left_of(ui.window)
+            // .x_relative_to(ui.window, -Self::WIDTH * 0.5)
+            // .align_middle_y_of(ui.window)
+            .w_h(350.0, 300.0)
+            .set(self.ids.help_canvas, ui);
+
+        widget::Text::new(control::help_text().trim_end())
+            .font_size(13)
+            .line_spacing(4.0)
+            .middle_of(self.ids.help_canvas)
+            .set(self.ids.help_text, ui);
+    }
+
     fn theme(font_id: Option<conrod::text::font::Id>) -> conrod::Theme {
         conrod::Theme {
             name: "Theme".to_string(),
@@ -508,6 +531,8 @@ widget_ids! {
         skybox_toggle_circle,
         footer_msg,
         fps,
+        help_canvas,
+        help_text,
     }
 }
 

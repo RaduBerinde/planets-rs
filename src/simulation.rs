@@ -162,13 +162,12 @@ impl Simulation {
                 self.reverse();
             }
             ControlEvent::JumpForward | ControlEvent::JumpBack => {
-                if !self.is_running() {
-                    let old_reverse = self.reverse;
-                    self.reverse = matches!(ev, ControlEvent::JumpBack);
-                    let simulation_speed_per_sec = Seconds::from(self.speed.get());
-                    self.advance_by(simulation_speed_per_sec, Self::MAX_STEPS_PER_FRAME);
-                    self.reverse = old_reverse;
-                }
+                let mut s = self.stopped();
+                let old_reverse = s.reverse;
+                s.reverse = matches!(ev, ControlEvent::JumpBack);
+                let simulation_speed_per_sec = Seconds::from(s.speed.get());
+                s.advance_by(simulation_speed_per_sec * 0.5, Self::MAX_STEPS_PER_FRAME);
+                s.reverse = old_reverse;
             }
             ControlEvent::LoadPreset(preset) => {
                 self.preset = preset.clone();
