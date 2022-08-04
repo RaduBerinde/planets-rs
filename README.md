@@ -12,4 +12,4 @@ Visulatization features:
  - Smooth camera transitions
  - UI for controls
 
-<img src="https://user-images.githubusercontent.com/16544120/182956961-099d8816-5cff-44c7-969c-5dae310228bf.png" alt="screenshot" width="800"/>
+![image](https://user-images.githubusercontent.com/16544120/182957875-208f0645-6fb4-4165-b6e4-d248b69fefcd.png)
