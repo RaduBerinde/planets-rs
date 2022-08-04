@@ -99,9 +99,16 @@ pub fn help_text() -> String {
         ("Mouse scroll".to_string(), "Zoom camera"),
         ("Click + drag".to_string(), "Rotate camera"),
     ];
+    let key_str = |k: &Key| -> String {
+        match k {
+            Key::Equals => "=".to_string(),
+            Key::Minus => "-".to_string(),
+            _ => format!("{:?}", k),
+        }
+    };
     for (k, e) in &KEY_MAP {
         if !matches!(e, ControlEvent::Exit) {
-            entries.push((format!("{:?}", k), e.description()));
+            entries.push((key_str(k), e.description()));
         }
     }
     entries.push(("1, 2".to_string(), "Load preset"));
@@ -110,7 +117,7 @@ pub fn help_text() -> String {
 
     let mut s = String::new();
     for e in entries {
-        let _ = writeln!(&mut s, "{:^width$}  {}", e.0, e.1, width = width);
+        let _ = writeln!(&mut s, "{:>width$}  {}", e.0, e.1, width = width);
     }
     s
 }

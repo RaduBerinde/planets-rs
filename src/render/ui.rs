@@ -50,6 +50,7 @@ impl Ui {
                     self.ids.canvas,
                     widget::Canvas::new()
                         .pad(Self::MARGIN)
+                        .rgba(0.0, 0.0, 0.0, 0.0)
                         .scroll_kids_vertically(),
                 ),
                 (
@@ -58,7 +59,8 @@ impl Ui {
                         .length(18.0)
                         .pad_left(4.0)
                         .pad_right(4.0)
-                        .pad_bottom(2.0),
+                        .pad_bottom(2.0)
+                        .rgba(0.0, 0.0, 0.0, 0.0),
                 ),
             ])
             .align_right()
