@@ -6,7 +6,7 @@ To run, clone the repository and run `cargo run --release`.
 
 The simulation uses Newton's gravitational law and [Velocity Verlet](https://en.wikipedia.org/wiki/Verlet_integration#Velocity_Verlet) integration.
 
-Visulatization features:
+Visualization features:
  - Solar and lunar eclipse shadow calculation
  - Normal mapping for surface details
  - Smooth camera transitions
