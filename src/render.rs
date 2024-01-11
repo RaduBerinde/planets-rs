@@ -88,7 +88,8 @@ impl Renderer {
         Self::init_materials();
 
         window.set_light(Light::StickToCamera);
-        window.set_line_width(2.0); // For body hints.
+        // This causes a failure on MacOS for some reason.
+        //window.set_line_width(2.0); // For body hints.
 
         // Init the Sun. The sun uses the default material.
         let mut sun_node = window.add_sphere(Sun.radius());
